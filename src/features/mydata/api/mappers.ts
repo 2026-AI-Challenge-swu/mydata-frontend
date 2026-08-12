@@ -13,20 +13,17 @@ export function mapRetirementPensionResponse(
 ): RetirementPensionData {
   return {
     type: 'DC',
-    balanceAmt: raw.balance_amt,
-    evalAmt: raw.eval_amt,
-    issueDate: raw.issue_date,
+    balance: raw.balance_amt,
+    evaluationAmount: raw.eval_amt,
   };
 }
 
+// IRP는 계좌가 하나뿐이라(raw에 계좌명이 따로 없음) accounts 배열엔 단일 항목만 들어감.
+// balance는 평가금액(eval_amt), totalContribution은 누적 납입액(accum_amt = employer_amt + employee_amt)
 export function mapPersonalPensionResponse(raw: RawIrpPersonalPensionResponse): PersonalPensionData {
   return {
-    accumAmt: raw.accum_amt,
-    evalAmt: raw.eval_amt,
-    employerAmt: raw.employer_amt,
-    employeeAmt: raw.employee_amt,
-    issueDate: raw.issue_date,
-    rcvStartDate: raw.rcv_start_date,
+    accounts: [{ productName: 'IRP', balance: raw.eval_amt }],
+    totalContribution: raw.accum_amt,
   };
 }
 
@@ -34,13 +31,12 @@ export function mapSavingsInvestmentResponse(
   raw: RawSavingsInvestmentResponse,
 ): SavingsInvestmentData {
   const accounts = raw.accounts.map((account) => ({
-    accountNum: account.account_num,
-    prodName: account.prod_name,
-    balanceAmt: account.balance_amt,
+    productName: account.prod_name,
+    balance: account.balance_amt,
   }));
 
   return {
     accounts,
-    totalBalance: accounts.reduce((sum, account) => sum + account.balanceAmt, 0),
+    totalBalance: accounts.reduce((sum, account) => sum + account.balance, 0),
   };
 }
