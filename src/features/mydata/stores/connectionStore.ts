@@ -1,18 +1,18 @@
 import { create } from 'zustand';
-import type { ConnectionCategory, ItemStatus, ScreenStep } from '../types/connection';
+import type { ConnectionCategory, ConnectionItems, ItemStatus, ScreenStep } from '../types/connection';
 
 interface ConnectionState {
   step: ScreenStep;
   agreed: boolean;
-  items: Record<ConnectionCategory, ItemStatus>;
+  items: ConnectionItems;
 
   setStep: (step: ScreenStep) => void;
   setAgreed: (agreed: boolean) => void;
-  setItemStatus: (category: ConnectionCategory, status: ItemStatus) => void;
+  setItemStatus: <C extends ConnectionCategory>(category: C, status: ItemStatus<C>) => void;
   resetItem: (category: ConnectionCategory) => void;
 }
 
-const initialItems: Record<ConnectionCategory, ItemStatus> = {
+const initialItems: ConnectionItems = {
   nationalPension: { status: 'idle' },
   retirementPension: { status: 'idle' },
   personalPension: { status: 'idle' },
@@ -37,7 +37,7 @@ export const useConnectionStore = create<ConnectionState>((set) => ({
 }));
 
 export function getOverallStatus(
-  items: Record<ConnectionCategory, ItemStatus>,
+  items: ConnectionItems,
 ): 'pending' | 'success' | 'partial' | 'failure' {
   const statuses = Object.values(items).map((item) => item.status);
 
