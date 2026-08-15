@@ -28,15 +28,13 @@ export async function loadAllConnectionItems(scenario: MockScenario = 'success')
   );
 }
 
-// 실패(error) 상태이면서 재시도 가능한 항목만 골라 다시 조회.
-// retryable이 false인 항목(국민연금 등 구조적 실패)은 대상에서 제외하고 그대로 둠.
+// 실패(error) 상태인 항목을 전부 다시 조회.
+// 국민연금처럼 구조적으로 계속 실패하는 항목도 재시도 자체는 시도하고(로딩→다시 실패),
+// retryConnectionItem이 항상 같은 실패를 돌려주므로 결과적으로 실패 상태가 유지됨.
 export async function retryFailedItems(): Promise<void> {
   const { items, setItemStatus } = useConnectionStore.getState();
 
-  const retryTargets = CATEGORIES.filter((category) => {
-    const item = items[category];
-    return item.status === 'error' && item.retryable !== false;
-  });
+  const retryTargets = CATEGORIES.filter((category) => items[category].status === 'error');
 
   retryTargets.forEach((category) => {
     setItemStatus(category, { status: 'loading' });
