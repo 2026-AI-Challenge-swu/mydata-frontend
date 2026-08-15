@@ -48,14 +48,12 @@ export interface CategoryDataMap {
   savingsInvestment: SavingsInvestmentData;
 }
 
-// C를 넘기면 success.data가 unknown이 아니라 CategoryDataMap[C]로 좁혀짐
 export type ItemStatus<C extends ConnectionCategory = ConnectionCategory> =
   | { status: 'idle' }
   | { status: 'loading' }
   | { status: 'success'; data: CategoryDataMap[C] }
-  | { status: 'error'; message: string };
+  | { status: 'error'; message: string; retryable?: boolean };
 
-// items 레코드: 카테고리마다 자기 타입에 맞는 ItemStatus를 갖도록 매핑
 export type ConnectionItems = {
   [C in ConnectionCategory]: ItemStatus<C>;
 };

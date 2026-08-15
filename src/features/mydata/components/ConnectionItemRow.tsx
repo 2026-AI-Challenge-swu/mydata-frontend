@@ -1,28 +1,41 @@
-import type { CategoryDataMap, ConnectionCategory, ItemStatus } from '../types/connection';
+import type { ConnectionCategory, ItemStatus } from '../types/connection';
 
 const CATEGORY_LABELS: Record<ConnectionCategory, string> = {
-  nationalPension: '국민연금',
-  retirementPension: '퇴직연금',
-  personalPension: '개인연금(IRP)',
-  savingsInvestment: '예적금·투자',
+  nationalPension: '국민연금 가입내역',
+  retirementPension: '퇴직연금 현황',
+  personalPension: '개인연금 가입여부',
+  savingsInvestment: '예적금·투자상품 현황',
 };
 
-function formatWon(amount: number): string {
-  return `${amount.toLocaleString()}원`;
+function CheckIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4" aria-hidden="true">
+      <circle cx="10" cy="10" r="10" className="fill-emerald-100" />
+      <path
+        d="M6 10.5l2.5 2.5L14 7.5"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="text-emerald-600"
+      />
+    </svg>
+  );
 }
 
-// data는 4개 카테고리 데이터 타입의 유니온이라, 각 타입에만 있는 고유 필드로 'in' 검사해서 구분
-function renderSummary(data: CategoryDataMap[ConnectionCategory]): string {
-  if ('estimatedMonthlyAmount' in data) {
-    return `예상 월 수령액 ${formatWon(data.estimatedMonthlyAmount)} (${data.paymentStartAge}세부터, 가입 ${data.contributionYears}년)`;
-  }
-  if ('evaluationAmount' in data) {
-    return `평가금액 ${formatWon(data.evaluationAmount)}`;
-  }
-  if ('totalContribution' in data) {
-    return `총 납입액 ${formatWon(data.totalContribution)} (계좌 ${data.accounts.length}개)`;
-  }
-  return `총 잔액 ${formatWon(data.totalBalance)} (계좌 ${data.accounts.length}개)`;
+function XIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4" aria-hidden="true">
+      <circle cx="10" cy="10" r="10" className="fill-red-100" />
+      <path
+        d="M7 7l6 6M13 7l-6 6"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        className="text-red-500"
+      />
+    </svg>
+  );
 }
 
 interface ConnectionItemRowProps {
@@ -45,10 +58,18 @@ export function ConnectionItemRow({ category, status }: ConnectionItemRowProps) 
       )}
 
       {status.status === 'success' && (
-        <span className="text-sm text-slate-600">{renderSummary(status.data)}</span>
+        <span className="flex items-center gap-1.5 text-sm font-medium text-emerald-600">
+          <CheckIcon />
+          연동됨
+        </span>
       )}
 
-      {status.status === 'error' && <span className="text-sm text-red-500">{status.message}</span>}
+      {status.status === 'error' && (
+        <span className="flex items-center gap-1.5 text-sm font-medium text-red-500">
+          <XIcon />
+          연동 실패
+        </span>
+      )}
     </div>
   );
 }
