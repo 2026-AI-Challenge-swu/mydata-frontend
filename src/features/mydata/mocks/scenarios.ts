@@ -11,14 +11,14 @@ import {
   kimMinjunSavingsInvestmentRaw,
 } from './personas/kimMinjun';
 
-export type MockScenario = 'success' | 'partialFailure';
+export type MockScenario = 'success' | 'partialFailure' | 'failure';
 
 // raw mock → 매퍼 통과 → domain 타입. 실제 API 붙여도 이 조립 방식은 동일하게 유지됨.
 const retirementPensionSuccess = mapRetirementPensionResponse(kimMinjunRetirementPensionRaw);
 const personalPensionSuccess = mapPersonalPensionResponse(kimMinjunPersonalPensionRaw);
 const savingsInvestmentSuccess = mapSavingsInvestmentResponse(kimMinjunSavingsInvestmentRaw);
 
-// 카테고리마다 성공/실패 중 뭐가 나올지 시나리오별로 미리 정의해둔 표
+
 export const mockScenarios: {
   [S in MockScenario]: { [C in ConnectionCategory]: ItemStatus<C> };
 } = {
@@ -34,9 +34,17 @@ export const mockScenarios: {
     nationalPension: {
       status: 'error',
       message: '국민연금공단 연계 실패: 이용기관 등록 심사 미완료',
+      retryable: false,
     },
     retirementPension: { status: 'success', data: retirementPensionSuccess },
     personalPension: { status: 'success', data: personalPensionSuccess },
     savingsInvestment: { status: 'success', data: savingsInvestmentSuccess },
+  },
+  // 인증 단계 자체가 실패한 경우 — 4개 항목 모두 조회를 시도조차 못 함
+  failure: {
+    nationalPension: { status: 'error', message: '인증 실패', retryable: true },
+    retirementPension: { status: 'error', message: '인증 실패', retryable: true },
+    personalPension: { status: 'error', message: '인증 실패', retryable: true },
+    savingsInvestment: { status: 'error', message: '인증 실패', retryable: true },
   },
 };
