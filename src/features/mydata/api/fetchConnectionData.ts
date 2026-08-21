@@ -1,31 +1,68 @@
-import type { ConnectionCategory, ItemStatus } from '../types/connection';
-import { mockScenarios, type MockScenario } from '../mocks/scenarios';
+import axios from 'axios';
+import { httpClient } from './httpClient';
+import type { ConnectionCategory, ItemStatus, NationalPensionData } from '../types/connection';
+import type {
+  RawDcRetirementPensionResponse,
+  RawIrpPersonalPensionResponse,
+  RawSavingsInvestmentResponse,
+} from '../types/rawApiResponses';
+import {
+  mapRetirementPensionResponse,
+  mapPersonalPensionResponse,
+  mapSavingsInvestmentResponse,
+} from './mappers';
+import type { MockScenario } from '../mocks/scenarios';
 
-const MOCK_DELAY_MS = 800;
+const ENDPOINT_PATH: Record<ConnectionCategory, string> = {
+  nationalPension: 'national-pension',
+  retirementPension: 'retirement-pension',
+  personalPension: 'personal-pension',
+  savingsInvestment: 'savings-investment',
+};
 
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+// 백엔드가 카테고리별로 다른 모양(raw 스펙 그대로 또는 국민연금은 domain 그대로)의 JSON을 주기 때문에,
+// 여기서 카테고리에 맞는 매퍼를 골라서 domain 타입으로 변환.
+function toDomainData(category: ConnectionCategory, data: unknown) {
+  switch (category) {
+    case 'nationalPension':
+      return data as NationalPensionData;
+    case 'retirementPension':
+      return mapRetirementPensionResponse(data as RawDcRetirementPensionResponse);
+    case 'personalPension':
+      return mapPersonalPensionResponse(data as RawIrpPersonalPensionResponse);
+    case 'savingsInvestment':
+      return mapSavingsInvestmentResponse(data as RawSavingsInvestmentResponse);
+  }
 }
 
-// 실제 마이데이터 API가 붙기 전까지 사용하는 mock fetch.
-// 나중에 실 API로 교체할 땐 이 함수 내부만 axios 호출로 바꾸면 되고,
-// 호출하는 쪽(스토어/컴포넌트)은 Promise<ItemStatus<C>>를 그대로 받으므로 수정할 필요 없음.
+// axios 에러(백엔드가 502 + {message, retryable}로 응답한 경우)를 ItemStatus의 error 케이스로 변환.
+function toErrorStatus(error: unknown): ItemStatus {
+  if (axios.isAxiosError(error) && error.response) {
+    const { message, retryable } = error.response.data as { message: string; retryable: boolean };
+    return { status: 'error', message, retryable };
+  }
+  throw error;
+}
+
 export async function fetchConnectionItem<C extends ConnectionCategory>(
   category: C,
   scenario: MockScenario = 'success',
 ): Promise<ItemStatus<C>> {
-  await delay(MOCK_DELAY_MS);
-  return mockScenarios[scenario][category];
+  try {
+    const response = await httpClient.get(ENDPOINT_PATH[category], { params: { scenario } });
+    return { status: 'success', data: toDomainData(category, response.data) } as ItemStatus<C>;
+  } catch (error) {
+    return toErrorStatus(error) as ItemStatus<C>;
+  }
 }
 
-// 실패한 항목 하나를 재시도. 국민연금은 이용기관 등록 심사 전이라 재시도해도 구조적으로 계속 실패하고,
-// 나머지 항목은 일시적 오류였다는 가정 하에 재시도 시 성공 데이터를 반환.
 export async function retryConnectionItem<C extends ConnectionCategory>(
   category: C,
 ): Promise<ItemStatus<C>> {
-  await delay(MOCK_DELAY_MS);
-  if (category === 'nationalPension') {
-    return mockScenarios.partialFailure.nationalPension as ItemStatus<C>;
+  try {
+    const response = await httpClient.post(`${ENDPOINT_PATH[category]}/retry`);
+    return { status: 'success', data: toDomainData(category, response.data) } as ItemStatus<C>;
+  } catch (error) {
+    return toErrorStatus(error) as ItemStatus<C>;
   }
-  return mockScenarios.success[category];
 }

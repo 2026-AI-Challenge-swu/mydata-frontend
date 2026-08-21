@@ -1,6 +1,53 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useConnectionStore } from '../stores/connectionStore';
 import { loadAllConnectionItems } from './loadAllConnectionItems';
+
+// httpClient를 통째로 가짜로 바꿔서, 실제 네트워크(백엔드 서버) 없이도 테스트가 돌아가게 함.
+vi.mock('./httpClient', () => {
+  const successData: Record<string, unknown> = {
+    'national-pension': { estimatedMonthlyAmount: 320000, paymentStartAge: 65, contributionYears: 4 },
+    'retirement-pension': { balance_amt: 3200000, eval_amt: 3200000, issue_date: '2021-03-15' },
+    'personal-pension': {
+      accum_amt: 4300000,
+      eval_amt: 4450000,
+      employer_amt: 0,
+      employee_amt: 4300000,
+      issue_date: '2022-06-01',
+      rcv_start_date: '2054-01-01',
+    },
+    'savings-investment': {
+      accounts: [
+        { account_num: '110-123-456789', prod_name: '예금', balance_amt: 20000000 },
+        { account_num: '110-987-654321', prod_name: '주식/ETF', balance_amt: 12000000 },
+      ],
+    },
+  };
+
+  return {
+    httpClient: {
+      get: vi.fn((path: string, config?: { params?: { scenario?: string } }) => {
+        const scenario = config?.params?.scenario ?? 'success';
+
+        if (scenario === 'failure') {
+          return Promise.reject({
+            isAxiosError: true,
+            response: { data: { message: '인증 실패', retryable: true } },
+          });
+        }
+        if (scenario === 'partialFailure' && path === 'national-pension') {
+          return Promise.reject({
+            isAxiosError: true,
+            response: {
+              data: { message: '국민연금공단 연계 실패: 이용기관 등록 심사 미완료', retryable: false },
+            },
+          });
+        }
+        return Promise.resolve({ data: successData[path] });
+      }),
+      post: vi.fn(),
+    },
+  };
+});
 
 describe('loadAllConnectionItems', () => {
   beforeEach(() => {
