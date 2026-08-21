@@ -37,7 +37,7 @@ export function EntryScreen() {
   return (
     <div className="flex h-full w-full flex-col bg-[#FAFAF7] px-6 pt-14 pb-10">
       {/* 상단 배지 */}
-      <div className="inline-flex w-fit items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-[11px] font-bold tracking-[0.275px] text-[#155DFC] shadow-sm">
+      <div className="inline-flex w-fit items-center gap-1.5 rounded-full border border-[#DBEAFE] bg-[#EFF6FF] px-3 py-1.5 text-[11px] font-bold tracking-[0.275px] text-[#155DFC]">
         <ClockIcon />
         2030 직장인을 위한 1분 테스트
       </div>
@@ -66,7 +66,7 @@ export function EntryScreen() {
 
       {/* CTA 버튼 */}
       <button
-        className="mt-10 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#2A78D6] py-4 text-base leading-6 font-bold text-white"
+        className="mt-10 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#2A78D6] py-4 text-base leading-6 font-bold text-white shadow"
         onClick={() => navigate('/mydata/consent')}
       >
         테스트 시작하기
@@ -79,24 +79,24 @@ export function EntryScreen() {
         10문항 · 약 1분 소요 · 결과는 은행권 표준 기준
       </div>
 
-      <div className="mt-8 border-t border-black/5" />
-
-      {/* 안내 리스트 */}
-      <h2 className="mt-6 text-[11px] font-bold tracking-[1.1px] text-[#6B7280]">이런 걸 알 수 있어요</h2>
-      <ul className="mt-4 flex flex-col gap-4">
-        <li className="flex items-center gap-3 text-sm leading-[21px] text-[#1A1A2E]">
-          <span className="text-lg">🏷️</span>
-          나만의 금융유형 이름과 성향
-        </li>
-        <li className="flex items-center gap-3 text-sm leading-[21px] text-[#1A1A2E]">
-          <span className="text-lg">📦</span>
-          유형별 연금·금융상품 카테고리
-        </li>
-        <li className="flex items-center gap-3 text-sm leading-[21px] text-[#1A1A2E]">
-          <span className="text-lg">💡</span>
-          절세 효과와 미래 자산 시뮬레이션
-        </li>
-      </ul>
+      {/* 안내 리스트 (구분선 + 상단 여백을 이 래퍼 하나가 담당) */}
+      <div className="mt-10 border-t border-black/8 pt-7">
+        <h2 className="text-[11px] font-bold tracking-[1.1px] text-[#6B7280]">이런 걸 알 수 있어요</h2>
+        <ul className="mt-4 flex flex-col gap-4">
+          <li className="flex items-center gap-3 text-sm leading-[21px] text-[#1A1A2E]">
+            <span className="text-lg">🏷️</span>
+            나만의 금융유형 이름과 성향
+          </li>
+          <li className="flex items-center gap-3 text-sm leading-[21px] text-[#1A1A2E]">
+            <span className="text-lg">📦</span>
+            유형별 연금·금융상품 카테고리
+          </li>
+          <li className="flex items-center gap-3 text-sm leading-[21px] text-[#1A1A2E]">
+            <span className="text-lg">💡</span>
+            절세 효과와 미래 자산 시뮬레이션
+          </li>
+        </ul>
+      </div>
     </div>
   );
 }
