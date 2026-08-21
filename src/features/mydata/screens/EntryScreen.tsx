@@ -35,38 +35,38 @@ export function EntryScreen() {
   const navigate = useNavigate();
 
   return (
-    <div className="flex h-full w-full flex-col bg-[#F7F8FA] px-6 pt-8 pb-10">
+    <div className="flex h-full w-full flex-col bg-[#FAFAF7] px-6 pt-14 pb-10">
       {/* 상단 배지 */}
-      <div className="inline-flex w-fit items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-medium text-[#155DFC] shadow-sm">
+      <div className="inline-flex w-fit items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-[11px] font-bold tracking-[0.275px] text-[#155DFC] shadow-sm">
         <ClockIcon />
         2030 직장인을 위한 1분 테스트
       </div>
 
       {/* 타이틀 */}
-      <h1 className="mt-4 text-[28px] leading-[38px] font-bold text-[#1A1A2E]">
+      <h1 className="mt-4 text-[34px] leading-[40.8px] font-bold text-[#1A1A2E]">
         나는 어떤
         <br />
         금융유형일까?
       </h1>
 
       {/* 서브타이틀 */}
-      <p className="mt-3 text-sm leading-[22.75px] text-[#6B7280]">
+      <p className="mt-3 text-[15px] leading-[24.375px] text-[#6B7280]">
         국민연금 내고는 있는데,
         <br />
         노후 준비는 뭐부터 해야 할지 막막하다면
       </p>
 
       {/* 나침반 카드 */}
-      <div className="relative mt-8 flex flex-col items-center overflow-hidden rounded-3xl bg-gradient-to-br from-[#EAF2FE] to-[#DCEBFC] py-10">
-        <div className="absolute -top-4 -left-4 h-20 w-20 rounded-full bg-white/40" />
-        <div className="absolute -right-6 bottom-2 h-16 w-16 rounded-full bg-white/30" />
+      <div className="relative mt-10 flex h-[176px] flex-col items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-[#EBF3FF] to-[#E8F2FF]">
+        <div className="absolute -top-8 -right-8 h-28 w-28 rounded-full bg-white/20" />
+        <div className="absolute bottom-4 left-4 h-12 w-12 rounded-full bg-white/20" />
         <span className="text-5xl leading-none">🧭</span>
-        <span className="mt-3 text-base font-bold text-[#1A1A2E]">내 금융 나침반 찾기</span>
+        <span className="mt-3 text-[13px] leading-[19.5px] font-bold text-[#2A78D6]">내 금융 나침반 찾기</span>
       </div>
 
       {/* CTA 버튼 */}
       <button
-        className="mt-8 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#2A78D6] py-4 text-[15px] font-bold text-white"
+        className="mt-10 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#2A78D6] py-4 text-base leading-6 font-bold text-white"
         onClick={() => navigate('/mydata/consent')}
       >
         테스트 시작하기
@@ -74,7 +74,7 @@ export function EntryScreen() {
       </button>
 
       {/* 캡션 */}
-      <div className="mt-3 flex items-center justify-center gap-1.5 text-xs text-[#6B7280]">
+      <div className="mt-3 flex items-center justify-center gap-1.5 text-xs leading-[18px] text-[#6B7280]">
         <ClockIcon />
         10문항 · 약 1분 소요 · 결과는 은행권 표준 기준
       </div>
@@ -82,17 +82,17 @@ export function EntryScreen() {
       <div className="mt-8 border-t border-black/5" />
 
       {/* 안내 리스트 */}
-      <h2 className="mt-6 text-sm font-bold text-[#1A1A2E]">이런 걸 알 수 있어요</h2>
+      <h2 className="mt-6 text-[11px] font-bold tracking-[1.1px] text-[#6B7280]">이런 걸 알 수 있어요</h2>
       <ul className="mt-4 flex flex-col gap-4">
-        <li className="flex items-center gap-3 text-sm text-[#1A1A2E]">
+        <li className="flex items-center gap-3 text-sm leading-[21px] text-[#1A1A2E]">
           <span className="text-lg">🏷️</span>
           나만의 금융유형 이름과 성향
         </li>
-        <li className="flex items-center gap-3 text-sm text-[#1A1A2E]">
+        <li className="flex items-center gap-3 text-sm leading-[21px] text-[#1A1A2E]">
           <span className="text-lg">📦</span>
           유형별 연금·금융상품 카테고리
         </li>
-        <li className="flex items-center gap-3 text-sm text-[#1A1A2E]">
+        <li className="flex items-center gap-3 text-sm leading-[21px] text-[#1A1A2E]">
           <span className="text-lg">💡</span>
           절세 효과와 미래 자산 시뮬레이션
         </li>

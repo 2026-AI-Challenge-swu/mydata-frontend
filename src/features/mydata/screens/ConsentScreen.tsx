@@ -105,11 +105,14 @@ export function ConsentScreen() {
   const navigate = useNavigate();
 
   return (
-    <div className="flex h-full w-full flex-col bg-[#F7F8FA] px-6 py-8">
+    <div className="flex h-full w-full flex-col bg-[#FAFAF7] px-6 pt-12 pb-10">
       {/* 상단 헤더 */}
-      <div className="flex items-center justify-between text-xs">
-        <span className="text-[13px] font-bold text-[#6B7280]">마이데이터 연동</span>
-        <button className="text-[#6B7280] underline" onClick={() => navigate('/mydata/report')}>
+      <div className="flex items-center justify-between">
+        <span className="text-[13px] leading-[19.5px] font-bold text-[#6B7280]">마이데이터 연동</span>
+        <button
+          className="text-[13px] leading-[19.5px] font-bold text-[#6B7280] underline"
+          onClick={() => navigate('/mydata/report')}
+        >
           건너뛰고 테스트만 하기
         </button>
       </div>
@@ -124,7 +127,7 @@ export function ConsentScreen() {
       </button>
 
       {/* 타이틀 */}
-      <h1 className="mt-4 text-xl leading-[30px] font-bold text-[#1A1A2E]">
+      <h1 className="mt-4 text-[24px] leading-[36px] font-bold text-[#1A1A2E]">
         내 연금 정보를
         <br />
         불러올까요?
@@ -146,8 +149,8 @@ export function ConsentScreen() {
             >
               <Icon />
               <div>
-                <div className="text-sm font-bold text-[#1A1A2E]">{CATEGORY_LABELS[category]}</div>
-                <div className="text-xs text-[#6B7280]">{CATEGORY_SUBTITLES[category]}</div>
+                <div className="text-sm leading-[21px] font-bold text-[#1A1A2E]">{CATEGORY_LABELS[category]}</div>
+                <div className="text-xs leading-[18px] text-[#6B7280]">{CATEGORY_SUBTITLES[category]}</div>
               </div>
             </li>
           );
@@ -155,7 +158,7 @@ export function ConsentScreen() {
       </ul>
 
       {/* 동의 체크박스 */}
-      <label className="mt-6 flex items-start gap-2 text-xs leading-[19.5px] text-[#6B7280]">
+      <label className="mt-6 flex items-start gap-2 text-[13px] leading-[21.125px] font-bold text-[#1A1A2E]">
         <input
           type="checkbox"
           className="mt-0.5"
@@ -169,7 +172,7 @@ export function ConsentScreen() {
       {/* CTA 버튼 */}
       <div className="mt-auto pt-8">
         <button
-          className="w-full rounded-2xl bg-[#2A78D6] py-4 text-[15px] leading-[22.5px] font-bold text-white disabled:opacity-40"
+          className="w-full rounded-2xl bg-[#2A78D6] py-4 text-base leading-6 font-bold text-white disabled:opacity-40"
           disabled={!agreed}
           onClick={() => navigate('/mydata/connect')}
         >
