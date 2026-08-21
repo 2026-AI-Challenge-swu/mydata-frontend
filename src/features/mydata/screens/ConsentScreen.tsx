@@ -100,6 +100,23 @@ function BackIcon() {
   );
 }
 
+// Figma는 브라우저 기본 체크박스가 아니라 커스텀 사각 체크박스를 씀 — 체크 시 파란 사각형+흰 체크마크
+function CustomCheckbox({ checked }: { checked: boolean }) {
+  return (
+    <span
+      className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 ${
+        checked ? 'border-[#2A78D6] bg-[#2A78D6]' : 'border-[#D1D5DC] bg-white'
+      }`}
+    >
+      {checked && (
+        <svg viewBox="0 0 8 6" fill="none" className="h-[4.5px] w-2" aria-hidden="true">
+          <path d="M0.5 3L3 5.5L7.5 0.5" stroke="white" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      )}
+    </span>
+  );
+}
+
 export function ConsentScreen() {
   const [agreed, setAgreed] = useState(false);
   const navigate = useNavigate();
@@ -119,7 +136,7 @@ export function ConsentScreen() {
 
       {/* 뒤로가기 */}
       <button
-        className="mt-4 flex h-8 w-8 items-center justify-center rounded-full border border-black/8 bg-white"
+        className="mt-4 flex h-8 w-8 items-center justify-center rounded-full border border-black/8 bg-white/90 shadow"
         onClick={() => navigate(-1)}
         aria-label="이전으로"
       >
@@ -161,10 +178,11 @@ export function ConsentScreen() {
       <label className="mt-6 flex items-start gap-2 text-[13px] leading-[21.125px] font-bold text-[#1A1A2E]">
         <input
           type="checkbox"
-          className="mt-0.5"
+          className="sr-only"
           checked={agreed}
           onChange={(event) => setAgreed(event.target.checked)}
         />
+        <CustomCheckbox checked={agreed} />
         금융정보 조회에 동의합니다. 수집된 정보는 진단 목적으로만 사용되며, 개인정보보호법에 따라 안전하게
         처리됩니다.
       </label>
@@ -172,7 +190,7 @@ export function ConsentScreen() {
       {/* CTA 버튼 */}
       <div className="mt-auto pt-8">
         <button
-          className="w-full rounded-2xl bg-[#2A78D6] py-4 text-base leading-6 font-bold text-white disabled:opacity-40"
+          className="w-full rounded-2xl bg-[#2A78D6] py-4 text-base leading-6 font-bold text-white shadow disabled:opacity-40 disabled:shadow-none"
           disabled={!agreed}
           onClick={() => navigate('/mydata/connect')}
         >
