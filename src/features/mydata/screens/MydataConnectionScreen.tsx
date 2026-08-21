@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useConnectionStore, getOverallStatus } from '../stores/connectionStore';
 import { loadAllConnectionItems, retryFailedItems } from '../api/loadAllConnectionItems';
@@ -19,6 +19,14 @@ export function MydataConnectionScreen() {
     await loadAllConnectionItems(scenario);
     setIsLoading(false);
   }
+
+  // 동의화면에서 "동의하고 불러오기"로 넘어오면 버튼 클릭 없이 바로 조회가 시작돼야 함
+  // (아래 개발용 시나리오 버튼은 QA 확인용으로만 남겨둠)
+  // zustand 스토어(외부 상태)만 갱신하는 loadAllConnectionItems를 직접 불러서,
+  // 컴포넌트 로컬 state(setIsLoading 등)를 effect 안에서 동기 호출하지 않도록 함
+  useEffect(() => {
+    loadAllConnectionItems('success');
+  }, []);
 
   async function handleRetryFailed() {
     setIsLoading(true);
