@@ -28,3 +28,9 @@ export interface RawSavingsAccount {
 export interface RawSavingsInvestmentResponse {
   accounts: RawSavingsAccount[];
 }
+
+// 은행 거래내역 기본정보 (API ID: 은행-004)
+export interface RawBankTransactionResponse {
+  salary_amt: number;
+  expense_amt: number;
+}

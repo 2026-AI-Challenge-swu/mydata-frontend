@@ -3,6 +3,7 @@ import type {
   RawDcRetirementPensionResponse,
   RawIrpPersonalPensionResponse,
   RawSavingsInvestmentResponse,
+  RawBankTransactionResponse,
 } from '../../types/rawApiResponses';
 
 // 국민연금: 공식 API 스펙이 없어(금융 마이데이터 대상 아님) raw 없이 domain 타입으로 바로 mock
@@ -36,4 +37,10 @@ export const kimMinjunSavingsInvestmentRaw: RawSavingsInvestmentResponse = {
     { account_num: '110-123-456789', prod_name: '예금', balance_amt: 20000000 },
     { account_num: '110-987-654321', prod_name: '주식/ETF', balance_amt: 12000000 },
   ],
+};
+
+// 월급 350만원 / 평균 소비 220만원 (기획팀 설계 문서 S1-07/08 기준, 은행-004 스펙 필드명)
+export const kimMinjunBankTransactionRaw: RawBankTransactionResponse = {
+  salary_amt: 3500000,
+  expense_amt: 2200000,
 };

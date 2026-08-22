@@ -5,11 +5,13 @@ import type {
   RawDcRetirementPensionResponse,
   RawIrpPersonalPensionResponse,
   RawSavingsInvestmentResponse,
+  RawBankTransactionResponse,
 } from '../types/rawApiResponses';
 import {
   mapRetirementPensionResponse,
   mapPersonalPensionResponse,
   mapSavingsInvestmentResponse,
+  mapBankTransactionResponse,
 } from './mappers';
 import type { MockScenario } from '../mocks/scenarios';
 
@@ -18,6 +20,7 @@ const ENDPOINT_PATH: Record<ConnectionCategory, string> = {
   retirementPension: 'retirement-pension',
   personalPension: 'personal-pension',
   savingsInvestment: 'savings-investment',
+  bankTransaction: 'bank-transaction',
 };
 
 // 백엔드가 카테고리별로 다른 모양(raw 스펙 그대로 또는 국민연금은 domain 그대로)의 JSON을 주기 때문에,
@@ -32,6 +35,8 @@ function toDomainData(category: ConnectionCategory, data: unknown) {
       return mapPersonalPensionResponse(data as RawIrpPersonalPensionResponse);
     case 'savingsInvestment':
       return mapSavingsInvestmentResponse(data as RawSavingsInvestmentResponse);
+    case 'bankTransaction':
+      return mapBankTransactionResponse(data as RawBankTransactionResponse);
   }
 }
 

@@ -2,7 +2,8 @@ import { Routes, Route } from 'react-router-dom';
 import { EntryScreen } from './features/mydata/screens/EntryScreen';
 import { ConsentScreen } from './features/mydata/screens/ConsentScreen';
 import { MydataConnectionScreen } from './features/mydata/screens/MydataConnectionScreen';
-import { ReportPlaceholderScreen } from './features/mydata/screens/ReportPlaceholderScreen';
+import { AssetOverviewScreen } from './features/mydata/screens/AssetOverviewScreen';
+import { InvestmentProfilePlaceholderScreen } from './features/mydata/screens/InvestmentProfilePlaceholderScreen';
 
 function PhoneFrame({ children }: { children: React.ReactNode }) {
   return (
@@ -20,7 +21,11 @@ function App() {
       <Route path="/" element={<PhoneFrame><EntryScreen /></PhoneFrame>} />
       <Route path="/mydata/consent" element={<PhoneFrame><ConsentScreen /></PhoneFrame>} />
       <Route path="/mydata/connect" element={<MydataConnectionScreen />} />
-      <Route path="/mydata/report" element={<PhoneFrame><ReportPlaceholderScreen /></PhoneFrame>} />
+      <Route path="/mydata/report" element={<PhoneFrame><AssetOverviewScreen /></PhoneFrame>} />
+      <Route
+        path="/mydata/investment-profile"
+        element={<PhoneFrame><InvestmentProfilePlaceholderScreen /></PhoneFrame>}
+      />
     </Routes>
   );
 }

@@ -8,6 +8,7 @@ const CATEGORIES: ConnectionCategory[] = [
   'retirementPension',
   'personalPension',
   'savingsInvestment',
+  'bankTransaction',
 ];
 
 const CATEGORY_SUBTITLES: Record<ConnectionCategory, string> = {
@@ -15,6 +16,7 @@ const CATEGORY_SUBTITLES: Record<ConnectionCategory, string> = {
   retirementPension: 'DB형/DC형 적립금',
   personalPension: '연금저축·IRP 계좌 현황',
   savingsInvestment: '은행·증권사 보유 상품',
+  bankTransaction: '월급·소비 패턴',
 };
 
 // 아래 4개 아이콘 전부 Figma "Copy as SVG"로 받아온 실제 벡터
@@ -85,11 +87,29 @@ function ChartIcon() {
   );
 }
 
+// 은행 거래내역 카드는 Figma 시안엔 없던 항목이라, 나머지 4개와 같은 스타일(획 기반, currentColor)로 직접 제작
+function ReceiptIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" className="h-5 w-5 text-[#2A78D6]" aria-hidden="true">
+      <path
+        d="M5 2.5H15C15.4602 2.5 15.8333 2.8731 15.8333 3.33333V17.5L13.3333 15.8333L10.8333 17.5L8.33333 15.8333L5.83333 17.5L3.33333 17.5V3.33333C3.33333 2.8731 3.70643 2.5 4.16667 2.5H5Z"
+        stroke="currentColor"
+        strokeWidth="1.66667"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="M6.66663 7.5H13.3333" stroke="currentColor" strokeWidth="1.66667" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M6.66663 10.8333H13.3333" stroke="currentColor" strokeWidth="1.66667" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 const CATEGORY_ICONS: Record<ConnectionCategory, () => React.JSX.Element> = {
   nationalPension: PiggyIcon,
   retirementPension: BuildingIcon,
   personalPension: ShieldIcon,
   savingsInvestment: ChartIcon,
+  bankTransaction: ReceiptIcon,
 };
 
 function BackIcon() {
