@@ -39,8 +39,8 @@ export const kimMinjunSavingsInvestmentRaw: RawSavingsInvestmentResponse = {
   ],
 };
 
-// 월급 350만원 / 평균 소비 220만원 (기획팀 설계 문서 S1-07/08 기준, 은행-004 스펙 필드명)
+// 월급(세후) 340만원 / 평균 소비 210만원 (페르소나 기준표 기준, 은행-004 스펙 필드명)
 export const kimMinjunBankTransactionRaw: RawBankTransactionResponse = {
-  salary_amt: 3500000,
-  expense_amt: 2200000,
+  salary_amt: 3400000,
+  expense_amt: 2100000,
 };

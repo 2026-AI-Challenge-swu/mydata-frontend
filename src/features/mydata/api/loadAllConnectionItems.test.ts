@@ -21,7 +21,7 @@ vi.mock('./httpClient', () => {
         { account_num: '110-987-654321', prod_name: '주식/ETF', balance_amt: 12000000 },
       ],
     },
-    'bank-transaction': { salary_amt: 3500000, expense_amt: 2200000 },
+    'bank-transaction': { salary_amt: 3400000, expense_amt: 2100000 },
   };
 
   return {
