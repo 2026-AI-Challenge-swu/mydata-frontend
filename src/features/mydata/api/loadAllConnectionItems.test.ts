@@ -18,9 +18,11 @@ vi.mock('./httpClient', () => {
     'savings-investment': {
       accounts: [
         { account_num: '110-123-456789', prod_name: '예금', balance_amt: 20000000 },
-        { account_num: '110-987-654321', prod_name: '주식/ETF', balance_amt: 12000000 },
+        { account_num: '110-987-654321', prod_name: '주식', balance_amt: 7000000 },
+        { account_num: '110-555-112233', prod_name: 'ETF', balance_amt: 5000000 },
       ],
     },
+    'bank-transaction': { salary_amt: 3400000, expense_amt: 2100000 },
   };
 
   return {
@@ -57,11 +59,12 @@ describe('loadAllConnectionItems', () => {
         retirementPension: { status: 'idle' },
         personalPension: { status: 'idle' },
         savingsInvestment: { status: 'idle' },
+        bankTransaction: { status: 'idle' },
       },
     });
   });
 
-  it('success 시나리오: 4개 항목 모두 success 상태가 되고 mock 데이터가 채워진다', async () => {
+  it('success 시나리오: 5개 항목 모두 success 상태가 되고 mock 데이터가 채워진다', async () => {
     await loadAllConnectionItems('success');
 
     const { items } = useConnectionStore.getState();
@@ -70,6 +73,7 @@ describe('loadAllConnectionItems', () => {
     expect(items.retirementPension.status).toBe('success');
     expect(items.personalPension.status).toBe('success');
     expect(items.savingsInvestment.status).toBe('success');
+    expect(items.bankTransaction.status).toBe('success');
 
     if (items.nationalPension.status === 'success') {
       expect(items.nationalPension.data.estimatedMonthlyAmount).toBe(320000);
@@ -85,5 +89,6 @@ describe('loadAllConnectionItems', () => {
     expect(items.retirementPension.status).toBe('success');
     expect(items.personalPension.status).toBe('success');
     expect(items.savingsInvestment.status).toBe('success');
+    expect(items.bankTransaction.status).toBe('success');
   });
 });

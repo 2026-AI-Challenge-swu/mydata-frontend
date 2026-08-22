@@ -17,6 +17,7 @@ const initialItems: ConnectionItems = {
   retirementPension: { status: 'idle' },
   personalPension: { status: 'idle' },
   savingsInvestment: { status: 'idle' },
+  bankTransaction: { status: 'idle' },
 };
 
 export const useConnectionStore = create<ConnectionState>((set) => ({

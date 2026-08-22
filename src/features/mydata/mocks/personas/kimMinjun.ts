@@ -3,6 +3,7 @@ import type {
   RawDcRetirementPensionResponse,
   RawIrpPersonalPensionResponse,
   RawSavingsInvestmentResponse,
+  RawBankTransactionResponse,
 } from '../../types/rawApiResponses';
 
 // 국민연금: 공식 API 스펙이 없어(금융 마이데이터 대상 아님) raw 없이 domain 타입으로 바로 mock
@@ -30,10 +31,17 @@ export const kimMinjunPersonalPensionRaw: RawIrpPersonalPensionResponse = {
   rcv_start_date: '2054-01-01',
 };
 
-// 예금 2,000만원 + 주식/ETF 1,200만원 (기획팀 설계 문서 기준)
+// 예금 2,000만원 + 주식·ETF 1,200만원(페르소나 기준표) — 주식/ETF 세부 비율은 문서에 없어서 700/500으로 임의 분리
 export const kimMinjunSavingsInvestmentRaw: RawSavingsInvestmentResponse = {
   accounts: [
     { account_num: '110-123-456789', prod_name: '예금', balance_amt: 20000000 },
-    { account_num: '110-987-654321', prod_name: '주식/ETF', balance_amt: 12000000 },
+    { account_num: '110-987-654321', prod_name: '주식', balance_amt: 7000000 },
+    { account_num: '110-555-112233', prod_name: 'ETF', balance_amt: 5000000 },
   ],
+};
+
+// 월급(세후) 340만원 / 평균 소비 210만원 (페르소나 기준표 기준, 은행-004 스펙 필드명)
+export const kimMinjunBankTransactionRaw: RawBankTransactionResponse = {
+  salary_amt: 3400000,
+  expense_amt: 2100000,
 };

@@ -47,6 +47,7 @@ const CATEGORY_ORDER: ConnectionCategory[] = [
   'retirementPension',
   'personalPension',
   'savingsInvestment',
+  'bankTransaction',
 ];
 
 type OverallStatus = ReturnType<typeof getOverallStatus>;
