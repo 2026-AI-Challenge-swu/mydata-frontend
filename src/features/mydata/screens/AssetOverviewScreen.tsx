@@ -240,7 +240,7 @@ export function AssetOverviewScreen() {
       <div className="mt-auto pt-8">
         <button
           className="w-full rounded-2xl bg-[#2A78D6] py-4 text-base leading-6 font-bold text-white shadow"
-          onClick={() => navigate('/mydata/investment-profile')}
+          onClick={() => navigate('/mydata/survey')}
         >
           다음: 나의 투자성향 알아보기 →
         </button>

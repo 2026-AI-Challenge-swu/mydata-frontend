@@ -1,4 +1,17 @@
+import { useLocation } from 'react-router-dom';
+import { useConnectionStore, getOverallStatus } from '../stores/connectionStore';
+import type { InvestmentProfile } from '../../investmentSurvey/types/survey';
+import { SurveyResultScreen } from '../../investmentSurvey/screens/SurveyResultScreen';
+
 export function InvestmentProfilePlaceholderScreen() {
+  const location = useLocation();
+  const items = useConnectionStore((state) => state.items);
+  const profile = (location.state as { profile?: InvestmentProfile } | null)?.profile;
+
+  if (profile) {
+    return <SurveyResultScreen profile={profile} connected={getOverallStatus(items) === 'success'} />;
+  }
+
   return (
     <div className="flex h-full w-full flex-col items-center justify-center bg-white px-6 text-center">
       <h1 className="text-xl font-bold text-[#1A1A2E]">투자성향 진단</h1>
