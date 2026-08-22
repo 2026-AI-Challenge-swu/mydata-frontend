@@ -18,7 +18,8 @@ vi.mock('./httpClient', () => {
     'savings-investment': {
       accounts: [
         { account_num: '110-123-456789', prod_name: '예금', balance_amt: 20000000 },
-        { account_num: '110-987-654321', prod_name: '주식/ETF', balance_amt: 12000000 },
+        { account_num: '110-987-654321', prod_name: '주식', balance_amt: 7000000 },
+        { account_num: '110-555-112233', prod_name: 'ETF', balance_amt: 5000000 },
       ],
     },
     'bank-transaction': { salary_amt: 3400000, expense_amt: 2100000 },

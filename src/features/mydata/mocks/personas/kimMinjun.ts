@@ -31,11 +31,12 @@ export const kimMinjunPersonalPensionRaw: RawIrpPersonalPensionResponse = {
   rcv_start_date: '2054-01-01',
 };
 
-// 예금 2,000만원 + 주식/ETF 1,200만원 (기획팀 설계 문서 기준)
+// 예금 2,000만원 + 주식·ETF 1,200만원(페르소나 기준표) — 주식/ETF 세부 비율은 문서에 없어서 700/500으로 임의 분리
 export const kimMinjunSavingsInvestmentRaw: RawSavingsInvestmentResponse = {
   accounts: [
     { account_num: '110-123-456789', prod_name: '예금', balance_amt: 20000000 },
-    { account_num: '110-987-654321', prod_name: '주식/ETF', balance_amt: 12000000 },
+    { account_num: '110-987-654321', prod_name: '주식', balance_amt: 7000000 },
+    { account_num: '110-555-112233', prod_name: 'ETF', balance_amt: 5000000 },
   ],
 };
 

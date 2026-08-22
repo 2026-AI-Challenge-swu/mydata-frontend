@@ -92,7 +92,9 @@ export function AssetOverviewScreen() {
   const cashBalance =
     savingsInvestment.accounts.find((account) => account.productName === '예금')?.balance ?? 0;
   const stockBalance =
-    savingsInvestment.accounts.find((account) => account.productName === '주식/ETF')?.balance ?? 0;
+    savingsInvestment.accounts.find((account) => account.productName === '주식')?.balance ?? 0;
+  const etfBalance =
+    savingsInvestment.accounts.find((account) => account.productName === 'ETF')?.balance ?? 0;
 
   // 총자산 = 예적금+주식/ETF(자동) + 퇴직연금 적립금 + 개인연금 평가금액. 국민연금은 자산이 아니라 월수령액이라 제외(정의서 S1-04 비고)
   const totalAssets = savingsInvestment.totalBalance + retirementPension.balance + personalPensionBalance;
@@ -105,7 +107,8 @@ export function AssetOverviewScreen() {
 
   const donutSegments: DonutSegment[] = [
     { label: '현금·예금', value: cashBalance, color: '#1FAB6A' },
-    { label: '주식·ETF', value: stockBalance, color: '#2A78D6' },
+    { label: '주식', value: stockBalance, color: '#2A78D6' },
+    { label: 'ETF', value: etfBalance, color: '#06B6D4' },
     { label: '퇴직연금', value: retirementPension.balance, color: '#FE9A00' },
     { label: '개인연금', value: personalPensionBalance, color: '#8B5CF6' },
   ];
