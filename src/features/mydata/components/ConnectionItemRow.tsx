@@ -1,11 +1,5 @@
 import type { ConnectionCategory, ItemStatus } from '../types/connection';
-
-const CATEGORY_LABELS: Record<ConnectionCategory, string> = {
-  nationalPension: '국민연금 가입내역',
-  retirementPension: '퇴직연금 현황',
-  personalPension: '개인연금 가입여부',
-  savingsInvestment: '예적금·투자상품 현황',
-};
+import { CATEGORY_LABELS } from '../constants';
 
 function CheckBadge() {
   return (
