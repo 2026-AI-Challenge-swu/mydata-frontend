@@ -1,8 +1,14 @@
-import type { RetirementPensionData, PersonalPensionData, SavingsInvestmentData } from '../types/connection';
+import type {
+  RetirementPensionData,
+  PersonalPensionData,
+  SavingsInvestmentData,
+  BankTransactionData,
+} from '../types/connection';
 import type {
   RawDcRetirementPensionResponse,
   RawIrpPersonalPensionResponse,
   RawSavingsInvestmentResponse,
+  RawBankTransactionResponse,
 } from '../types/rawApiResponses';
 
 // 실제 API 붙일 때도 이 함수들은 그대로 재사용됨 —
@@ -38,5 +44,13 @@ export function mapSavingsInvestmentResponse(
   return {
     accounts,
     totalBalance: accounts.reduce((sum, account) => sum + account.balance, 0),
+  };
+}
+
+export function mapBankTransactionResponse(raw: RawBankTransactionResponse): BankTransactionData {
+  return {
+    monthlyIncome: raw.salary_amt,
+    monthlyExpense: raw.expense_amt,
+    monthlySavings: raw.salary_amt - raw.expense_amt,
   };
 }

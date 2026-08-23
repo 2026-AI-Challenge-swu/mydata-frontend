@@ -8,6 +8,7 @@ const CATEGORIES: ConnectionCategory[] = [
   'retirementPension',
   'personalPension',
   'savingsInvestment',
+  'bankTransaction',
 ];
 
 // 4개 항목을 한번에 "불러오는" 흉내를 냄.
