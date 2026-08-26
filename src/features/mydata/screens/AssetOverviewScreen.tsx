@@ -1,9 +1,47 @@
 import { useNavigate } from 'react-router-dom';
 import { useConnectionStore } from '../stores/connectionStore';
 
-// 퇴직연금 DC 적립금(320만원)을 월 수령액으로 환산하는 정확한 공식은 정의서(S1-11)에도 TBD.
-// 대신 정의서가 명시한 목표 demo 값(21만원/월)을 그대로 상수로 둠 — 나중에 공식이 정해지면 계산식으로 교체.
-const RETIREMENT_MONTHLY_ESTIMATE = 210_000;
+// 퇴직연금 DC 잔액을 월 수령액으로 환산하는 공식(S1-05 확정, 2026-08-26 기획팀 검토 완료).
+// 가정: 은퇴까지 매년 3% 복리로 자산이 불어나고, 은퇴 후 20년(240개월)에 걸쳐 연금현가공식으로 나눠 받음.
+const ASSUMED_ANNUAL_RETURN_RATE = 0.03;
+const PENSION_PAYOUT_YEARS = 20;
+// 페르소나 기준표(만 29세) — 마이데이터로 연동되는 값이 아니라서 상수로 둠. 은퇴 나이는 국민연금 수급개시연령(paymentStartAge)을 그대로 재사용.
+const CURRENT_AGE = 29;
+
+// 현재 잔액(currentBalance)을 연 복리로 은퇴 시점까지 불리고,
+// 연간 납입액(annualContribution)은 매달 나눠 적립하며 월복리로 불린 뒤,
+// 두 미래가치를 합쳐서 은퇴 후 20년간 매달 받는다고 가정하고 연금현가공식으로 월 수령액을 역산한다.
+function calculateRetirementMonthlyPension({
+  currentBalance,
+  annualContribution,
+  retirementAge,
+}: {
+  currentBalance: number;
+  annualContribution: number;
+  retirementAge: number;
+}) {
+  const yearsToRetirement = retirementAge - CURRENT_AGE;
+  const monthlyRate = ASSUMED_ANNUAL_RETURN_RATE / 12;
+
+  // 1) 기존 잔액의 미래가치: 연 단위 복리
+  const futureValueOfBalance =
+    currentBalance * Math.pow(1 + ASSUMED_ANNUAL_RETURN_RATE, yearsToRetirement);
+
+  // 2) 향후 납입액의 미래가치: 매달 (연납입액/12)씩 적립, 월복리로 성장(연금의 미래가치 공식)
+  const monthlyContribution = annualContribution / 12;
+  const monthsToRetirement = yearsToRetirement * 12;
+  const futureValueOfContributions =
+    monthlyContribution *
+    ((Math.pow(1 + monthlyRate, monthsToRetirement) - 1) / monthlyRate);
+
+  const totalFutureValue = futureValueOfBalance + futureValueOfContributions;
+
+  // 3) 은퇴 후 20년(240개월) 동안 매달 동일 금액을 받는다고 가정한 연금현가공식으로 월 지급액 역산
+  const payoutMonths = PENSION_PAYOUT_YEARS * 12;
+  const monthlyPayoutFactor = monthlyRate / (1 - Math.pow(1 + monthlyRate, -payoutMonths));
+
+  return Math.round(totalFutureValue * monthlyPayoutFactor);
+}
 
 function formatManwon(won: number) {
   return `${Math.round(won / 10_000).toLocaleString()}만원`;
@@ -98,8 +136,14 @@ export function AssetOverviewScreen() {
 
   // 총자산 = 예적금+주식/ETF(자동) + 퇴직연금 적립금 + 개인연금 평가금액. 국민연금은 자산이 아니라 월수령액이라 제외(정의서 S1-04 비고)
   const totalAssets = savingsInvestment.totalBalance + retirementPension.balance + personalPensionBalance;
-  // 예상 월 연금 = 국민연금(자동 월액) + 퇴직연금(자체 환산). 정의서 S1-05 기준
-  const expectedMonthlyPension = nationalPension.estimatedMonthlyAmount + RETIREMENT_MONTHLY_ESTIMATE;
+  // 퇴직연금 월 환산액: 연 납입액은 월급(세후)을 그대로 사용(마이데이터로 연동되는 값 기준)
+  const retirementMonthlyEstimate = calculateRetirementMonthlyPension({
+    currentBalance: retirementPension.balance,
+    annualContribution: bankTransaction.monthlyIncome,
+    retirementAge: nationalPension.paymentStartAge,
+  });
+  // 예상 월 연금 = 국민연금(자동 월액) + 퇴직연금(연금현가공식 환산). 정의서 S1-05 기준
+  const expectedMonthlyPension = nationalPension.estimatedMonthlyAmount + retirementMonthlyEstimate;
   const savingsRate =
     bankTransaction.monthlyIncome === 0
       ? 0
@@ -215,7 +259,7 @@ export function AssetOverviewScreen() {
             icon="🏢"
             title="퇴직연금"
             subtitle="다니는 회사가 대신 챙겨주는 돈이에요"
-            amountLabel={`${formatManwon(RETIREMENT_MONTHLY_ESTIMATE)}/월`}
+            amountLabel={`${formatManwon(retirementMonthlyEstimate)}/월`}
             badge="DC형"
             badgeColor="orange"
             extra={`적립금 ${formatManwon(retirementPension.balance)}`}
