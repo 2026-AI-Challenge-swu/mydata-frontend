@@ -27,4 +27,7 @@ export interface InvestmentProfile {
   officialName: string;
   nickname: string;
   description: string;
+  cardBackground: string;
+  badgeBackground: string;
+  accentColor: string;
 }

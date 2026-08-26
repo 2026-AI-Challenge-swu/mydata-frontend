@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { CATEGORY_LABELS } from '../constants';
 import type { ConnectionCategory } from '../types/connection';
 
@@ -140,6 +140,7 @@ function CustomCheckbox({ checked }: { checked: boolean }) {
 export function ConsentScreen() {
   const [agreed, setAgreed] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   return (
     <div className="flex h-full w-full flex-col bg-[#FAFAF7] px-6 pt-12 pb-10">
@@ -148,7 +149,7 @@ export function ConsentScreen() {
         <span className="text-[13px] leading-[19.5px] font-bold text-[#6B7280]">마이데이터 연동</span>
         <button
           className="text-[13px] leading-[19.5px] font-bold text-[#6B7280] underline"
-          onClick={() => navigate('/mydata/report')}
+          onClick={() => navigate('/mydata/survey')}
         >
           건너뛰고 테스트만 하기
         </button>
@@ -212,7 +213,7 @@ export function ConsentScreen() {
         <button
           className="w-full rounded-2xl bg-[#2A78D6] py-4 text-base leading-6 font-bold text-white shadow disabled:opacity-40 disabled:shadow-none"
           disabled={!agreed}
-          onClick={() => navigate('/mydata/connect')}
+          onClick={() => navigate('/mydata/connect', { state: location.state })}
         >
           동의하고 불러오기
         </button>
