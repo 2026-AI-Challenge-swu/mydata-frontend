@@ -15,10 +15,14 @@ interface DonutSegment {
   color: string;
 }
 
+// 조각 사이에 남길 흰 여백 크기. circumference를 100으로 잡아서 %와 동일한 단위라,
+// "2"는 원 둘레의 2%만큼을 각 조각 끝에서 잘라내 여백으로 비운다는 뜻.
+const DONUT_SEGMENT_GAP = 2;
+
 // 순수 SVG로 그리는 도넛 차트. 별도 차트 라이브러리 없이,
 // 원 둘레(stroke-dasharray)를 카테고리 비율만큼만 그리고 나머지는 투명하게 둬서 "조각"처럼 보이게 하는 방식.
 // viewBox를 42x42, 반지름을 15.9155로 잡으면 원 둘레가 정확히 100이 돼서 %를 그대로 dasharray 값으로 쓸 수 있음(흔히 쓰는 트릭).
-function DonutChart({ segments }: { segments: DonutSegment[] }) {
+function DonutChart({ segments, centerLabel }: { segments: DonutSegment[]; centerLabel: string }) {
   const total = segments.reduce((sum, segment) => sum + segment.value, 0);
   const circumference = 100;
 
@@ -34,22 +38,33 @@ function DonutChart({ segments }: { segments: DonutSegment[] }) {
   );
 
   return (
-    <svg viewBox="0 0 42 42" className="h-28 w-28 -rotate-90">
-      <circle cx="21" cy="21" r="15.9155" fill="none" stroke="#F0F0EC" strokeWidth="6" />
-      {arcs.map(({ segment, percent, cumulative }) => (
-        <circle
-          key={segment.label}
-          cx="21"
-          cy="21"
-          r="15.9155"
-          fill="none"
-          stroke={segment.color}
-          strokeWidth="6"
-          strokeDasharray={`${percent} ${circumference - percent}`}
-          strokeDashoffset={circumference - cumulative}
-        />
-      ))}
-    </svg>
+    // relative + absolute로 SVG 위에 중앙 텍스트를 겹쳐 그림 (SVG 안에 <text>를 넣으면 -rotate-90 때문에 글자까지 같이 돌아가서 바깥에 별도 레이어로 뺌)
+    <div className="relative h-28 w-28 shrink-0">
+      <svg viewBox="0 0 42 42" className="h-28 w-28 -rotate-90">
+        <circle cx="21" cy="21" r="15.9155" fill="none" stroke="#FFFFFF" strokeWidth="6" />
+        {arcs.map(({ segment, percent, cumulative }) => {
+          // 조각 끝에서 gap만큼 잘라내서 다음 조각과의 사이에 흰 여백이 보이게 함
+          const visiblePercent = Math.max(percent - DONUT_SEGMENT_GAP, 0);
+          return (
+            <circle
+              key={segment.label}
+              cx="21"
+              cy="21"
+              r="15.9155"
+              fill="none"
+              stroke={segment.color}
+              strokeWidth="6"
+              strokeDasharray={`${visiblePercent} ${circumference - visiblePercent}`}
+              strokeDashoffset={circumference - cumulative}
+            />
+          );
+        })}
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-[9px] text-[#6B7280]">총자산</span>
+        <span className="text-xs font-bold text-[#1A1A2E]">{centerLabel}</span>
+      </div>
+    </div>
   );
 }
 
@@ -105,12 +120,12 @@ export function AssetOverviewScreen() {
       ? 0
       : Math.round((bankTransaction.monthlySavings / bankTransaction.monthlyIncome) * 100);
 
+  // 피그마 시안(2026-08-24 수정)은 주식/ETF를 "주식·ETF" 한 카테고리로 합쳐서 보여줌 — 카테고리 4개로 통일
   const donutSegments: DonutSegment[] = [
     { label: '현금·예금', value: cashBalance, color: '#1FAB6A' },
-    { label: '주식', value: stockBalance, color: '#2A78D6' },
-    { label: 'ETF', value: etfBalance, color: '#06B6D4' },
+    { label: '주식·ETF', value: stockBalance + etfBalance, color: '#2A78D6' },
     { label: '퇴직연금', value: retirementPension.balance, color: '#FE9A00' },
-    { label: '개인연금', value: personalPensionBalance, color: '#8B5CF6' },
+    { label: 'IRP·연금저축', value: personalPensionBalance, color: '#8B5CF6' },
   ];
 
   const now = new Date();
@@ -145,7 +160,7 @@ export function AssetOverviewScreen() {
       <div className="mt-6 rounded-2xl border border-black/8 bg-white p-4">
         <h2 className="text-sm font-bold text-[#1A1A2E]">현재 자산 구성</h2>
         <div className="mt-4 flex items-center gap-6">
-          <DonutChart segments={donutSegments} />
+          <DonutChart segments={donutSegments} centerLabel={formatManwon(totalAssets)} />
           <ul className="flex flex-1 flex-col gap-2 text-xs">
             {donutSegments.map((segment) => {
               const percent = totalAssets === 0 ? 0 : Math.round((segment.value / totalAssets) * 100);
