@@ -53,6 +53,11 @@ interface DonutSegment {
   color: string;
 }
 
+// 조각 사이에 남길 흰 여백 크기. circumference를 100으로 잡아서 %와 동일한 단위라,
+// "1"은 원 둘레의 1%만큼을 각 조각 끝에서 잘라내 여백으로 비운다는 뜻.
+// 피그마는 조각 사이를 두꺼운 여백이 아니라 얇은 흰색 선(stroke)으로 구분해서, 그와 비슷한 얇기로 맞춤.
+const DONUT_SEGMENT_GAP = 1;
+
 // 순수 SVG로 그리는 도넛 차트. 별도 차트 라이브러리 없이,
 // 원 둘레(stroke-dasharray)를 카테고리 비율만큼만 그리고 나머지는 투명하게 둬서 "조각"처럼 보이게 하는 방식.
 // viewBox를 42x42, 반지름을 15.9155로 잡으면 원 둘레가 정확히 100이 돼서 %를 그대로 dasharray 값으로 쓸 수 있음(흔히 쓰는 트릭).
@@ -72,21 +77,25 @@ function DonutChart({ segments }: { segments: DonutSegment[] }) {
   );
 
   return (
-    <svg viewBox="0 0 42 42" className="h-28 w-28 -rotate-90">
-      <circle cx="21" cy="21" r="15.9155" fill="none" stroke="#F0F0EC" strokeWidth="6" />
-      {arcs.map(({ segment, percent, cumulative }) => (
-        <circle
-          key={segment.label}
-          cx="21"
-          cy="21"
-          r="15.9155"
-          fill="none"
-          stroke={segment.color}
-          strokeWidth="6"
-          strokeDasharray={`${percent} ${circumference - percent}`}
-          strokeDashoffset={circumference - cumulative}
-        />
-      ))}
+    <svg viewBox="0 0 42 42" className="h-28 w-28 shrink-0 rotate-180">
+      <circle cx="21" cy="21" r="15.9155" fill="none" stroke="#FFFFFF" strokeWidth="6" />
+      {arcs.map(({ segment, percent, cumulative }) => {
+        // 조각 끝에서 gap만큼 잘라내서 다음 조각과의 사이에 흰 여백이 보이게 함
+        const visiblePercent = Math.max(percent - DONUT_SEGMENT_GAP, 0);
+        return (
+          <circle
+            key={segment.label}
+            cx="21"
+            cy="21"
+            r="15.9155"
+            fill="none"
+            stroke={segment.color}
+            strokeWidth="6"
+            strokeDasharray={`${visiblePercent} ${circumference - visiblePercent}`}
+            strokeDashoffset={circumference - cumulative}
+          />
+        );
+      })}
     </svg>
   );
 }
@@ -149,13 +158,17 @@ export function AssetOverviewScreen() {
       ? 0
       : Math.round((bankTransaction.monthlySavings / bankTransaction.monthlyIncome) * 100);
 
+  // 피그마 시안(2026-08-24 수정) 기준: 주식/ETF를 "주식·ETF" 한 카테고리로 통합, 라벨/색상도 피그마 그대로 맞춤
+  // 이 배열 순서 = 범례(legend)에 나열되는 순서
   const donutSegments: DonutSegment[] = [
-    { label: '현금·예금', value: cashBalance, color: '#1FAB6A' },
-    { label: '주식', value: stockBalance, color: '#2A78D6' },
-    { label: 'ETF', value: etfBalance, color: '#06B6D4' },
-    { label: '퇴직연금', value: retirementPension.balance, color: '#FE9A00' },
-    { label: '개인연금', value: personalPensionBalance, color: '#8B5CF6' },
+    { label: '현금·예금', value: cashBalance, color: '#2A78D6' },
+    { label: '주식·ETF', value: stockBalance + etfBalance, color: '#1FAB6A' },
+    { label: '퇴직연금(DC)', value: retirementPension.balance, color: '#7C3AED' },
+    { label: 'IRP·연금저축', value: personalPensionBalance, color: '#EA8C00' },
   ];
+  // 피그마 실제 도넛은 범례 순서와 다르게 그려짐(현금·예금 다음이 주식·ETF가 아니라 IRP·연금저축) —
+  // 그래야 가장 큰 조각(현금·예금)이 도넛 "위쪽 절반"을 차지하는 모양이 나옴. 그 순서 그대로 재배열.
+  const donutChartSegments = [donutSegments[0], donutSegments[3], donutSegments[2], donutSegments[1]];
 
   const now = new Date();
 
@@ -187,15 +200,15 @@ export function AssetOverviewScreen() {
 
       {/* 자산 구성 도넛차트 */}
       <div className="mt-6 rounded-2xl border border-black/8 bg-white p-4">
-        <h2 className="text-sm font-bold text-[#1A1A2E]">현재 자산 구성</h2>
+        <h2 className="text-sm font-medium text-[#1A1A2E]">현재 자산 구성</h2>
         <div className="mt-4 flex items-center gap-6">
-          <DonutChart segments={donutSegments} />
-          <ul className="flex flex-1 flex-col gap-2 text-xs">
+          <DonutChart segments={donutChartSegments} />
+          <ul className="flex flex-1 flex-col gap-2">
             {donutSegments.map((segment) => {
               const percent = totalAssets === 0 ? 0 : Math.round((segment.value / totalAssets) * 100);
               return (
                 <li key={segment.label} className="flex items-center justify-between gap-2">
-                  <span className="flex items-center gap-1.5 text-[#1A1A2E]">
+                  <span className="flex items-center gap-1.5 text-[11px] text-[#1A1A2E]">
                     <span
                       className="h-2 w-2 rounded-full"
                       style={{ backgroundColor: segment.color }}
@@ -203,7 +216,7 @@ export function AssetOverviewScreen() {
                     />
                     {segment.label}
                   </span>
-                  <span className="font-bold text-[#1A1A2E]">{percent}%</span>
+                  <span className="text-xs font-medium text-[#1A1A2E]">{percent}%</span>
                 </li>
               );
             })}
@@ -214,7 +227,7 @@ export function AssetOverviewScreen() {
       {/* 소득 및 소비 분석 */}
       <div className="mt-6 rounded-2xl border border-black/8 bg-white p-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold text-[#1A1A2E]">소득 및 소비 분석</h2>
+          <h2 className="text-sm font-medium text-[#1A1A2E]">소득 및 소비 분석</h2>
           <span className="rounded-full bg-[#D6F6E6] px-2.5 py-1 text-[11px] font-bold text-[#1FAB6A]">
             저축률 {savingsRate}%
           </span>
@@ -244,7 +257,7 @@ export function AssetOverviewScreen() {
 
       {/* 연금 현황 카드 3개 */}
       <div className="mt-6 rounded-2xl border border-black/8 bg-white p-4">
-        <h2 className="text-sm font-bold text-[#1A1A2E]">연금 현황</h2>
+        <h2 className="text-sm font-medium text-[#1A1A2E]">연금 현황</h2>
 
         <div className="mt-4 flex flex-col divide-y divide-black/8">
           <PensionRow
