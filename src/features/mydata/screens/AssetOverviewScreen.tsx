@@ -1,51 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useConnectionStore } from '../stores/connectionStore';
-
-// 퇴직연금 DC 잔액을 월 수령액으로 환산하는 공식(S1-05 확정, 2026-08-26 기획팀 검토 완료).
-// 가정: 은퇴까지 매년 3% 복리로 자산이 불어나고, 은퇴 후 20년(240개월)에 걸쳐 연금현가공식으로 나눠 받음.
-const ASSUMED_ANNUAL_RETURN_RATE = 0.03;
-const PENSION_PAYOUT_YEARS = 20;
-// 페르소나 기준표(만 29세) — 마이데이터로 연동되는 값이 아니라서 상수로 둠. 은퇴 나이는 국민연금 수급개시연령(paymentStartAge)을 그대로 재사용.
-const CURRENT_AGE = 29;
-
-// 현재 잔액(currentBalance)을 연 복리로 은퇴 시점까지 불리고,
-// 연간 납입액(annualContribution)은 매달 나눠 적립하며 월복리로 불린 뒤,
-// 두 미래가치를 합쳐서 은퇴 후 20년간 매달 받는다고 가정하고 연금현가공식으로 월 수령액을 역산한다.
-function calculateRetirementMonthlyPension({
-  currentBalance,
-  annualContribution,
-  retirementAge,
-}: {
-  currentBalance: number;
-  annualContribution: number;
-  retirementAge: number;
-}) {
-  const yearsToRetirement = retirementAge - CURRENT_AGE;
-  const monthlyRate = ASSUMED_ANNUAL_RETURN_RATE / 12;
-
-  // 1) 기존 잔액의 미래가치: 연 단위 복리
-  const futureValueOfBalance =
-    currentBalance * Math.pow(1 + ASSUMED_ANNUAL_RETURN_RATE, yearsToRetirement);
-
-  // 2) 향후 납입액의 미래가치: 매달 (연납입액/12)씩 적립, 월복리로 성장(연금의 미래가치 공식)
-  const monthlyContribution = annualContribution / 12;
-  const monthsToRetirement = yearsToRetirement * 12;
-  const futureValueOfContributions =
-    monthlyContribution *
-    ((Math.pow(1 + monthlyRate, monthsToRetirement) - 1) / monthlyRate);
-
-  const totalFutureValue = futureValueOfBalance + futureValueOfContributions;
-
-  // 3) 은퇴 후 20년(240개월) 동안 매달 동일 금액을 받는다고 가정한 연금현가공식으로 월 지급액 역산
-  const payoutMonths = PENSION_PAYOUT_YEARS * 12;
-  const monthlyPayoutFactor = monthlyRate / (1 - Math.pow(1 + monthlyRate, -payoutMonths));
-
-  return Math.round(totalFutureValue * monthlyPayoutFactor);
-}
-
-function formatManwon(won: number) {
-  return `${Math.round(won / 10_000).toLocaleString()}만원`;
-}
+import { computeAssetSummary, formatManwon, getConnectedMydata } from '../utils/assetSummary';
 
 interface DonutSegment {
   label: string;
@@ -106,57 +61,24 @@ export function AssetOverviewScreen() {
 
   // 이 화면은 마이데이터 연동(로딩/결과 화면)을 통과해야만 진입하는 라우트라
   // 정상 흐름에선 5개 항목이 전부 success여야 함. 혹시 직접 URL로 들어온 경우엔 연동 화면으로 돌려보냄.
-  const allSuccess =
-    items.nationalPension.status === 'success' &&
-    items.retirementPension.status === 'success' &&
-    items.personalPension.status === 'success' &&
-    items.savingsInvestment.status === 'success' &&
-    items.bankTransaction.status === 'success';
+  const connected = getConnectedMydata(items);
 
-  if (!allSuccess) {
+  if (!connected) {
     navigate('/mydata/connect', { replace: true });
     return null;
   }
 
-  // TypeScript가 위 allSuccess 체크만으로는 각 상태를 success로 좁혀주지 않아서(변수별로 따로 판별),
-  // 여기서 status가 'success'인 케이스로 재선언
-  const nationalPension =
-    items.nationalPension.status === 'success' ? items.nationalPension.data : null;
-  const retirementPension =
-    items.retirementPension.status === 'success' ? items.retirementPension.data : null;
-  const personalPension =
-    items.personalPension.status === 'success' ? items.personalPension.data : null;
-  const savingsInvestment =
-    items.savingsInvestment.status === 'success' ? items.savingsInvestment.data : null;
-  const bankTransaction =
-    items.bankTransaction.status === 'success' ? items.bankTransaction.data : null;
-
-  if (!nationalPension || !retirementPension || !personalPension || !savingsInvestment || !bankTransaction) {
-    return null;
-  }
-
-  const personalPensionBalance = personalPension.accounts[0]?.balance ?? 0;
-  const cashBalance =
-    savingsInvestment.accounts.find((account) => account.productName === '예금')?.balance ?? 0;
-  const stockBalance =
-    savingsInvestment.accounts.find((account) => account.productName === '주식')?.balance ?? 0;
-  const etfBalance =
-    savingsInvestment.accounts.find((account) => account.productName === 'ETF')?.balance ?? 0;
-
-  // 총자산 = 예적금+주식/ETF(자동) + 퇴직연금 적립금 + 개인연금 평가금액. 국민연금은 자산이 아니라 월수령액이라 제외(정의서 S1-04 비고)
-  const totalAssets = savingsInvestment.totalBalance + retirementPension.balance + personalPensionBalance;
-  // 퇴직연금 월 환산액: 연 납입액은 월급(세후)을 그대로 사용(마이데이터로 연동되는 값 기준)
-  const retirementMonthlyEstimate = calculateRetirementMonthlyPension({
-    currentBalance: retirementPension.balance,
-    annualContribution: bankTransaction.monthlyIncome,
-    retirementAge: nationalPension.paymentStartAge,
-  });
-  // 예상 월 연금 = 국민연금(자동 월액) + 퇴직연금(연금현가공식 환산). 정의서 S1-05 기준
-  const expectedMonthlyPension = nationalPension.estimatedMonthlyAmount + retirementMonthlyEstimate;
-  const savingsRate =
-    bankTransaction.monthlyIncome === 0
-      ? 0
-      : Math.round((bankTransaction.monthlySavings / bankTransaction.monthlyIncome) * 100);
+  const { nationalPension, retirementPension, bankTransaction } = connected;
+  const {
+    personalPensionBalance,
+    cashBalance,
+    stockBalance,
+    etfBalance,
+    totalAssets,
+    retirementMonthlyEstimate,
+    expectedMonthlyPension,
+    savingsRate,
+  } = computeAssetSummary(connected);
 
   // 피그마 시안(2026-08-24 수정) 기준: 주식/ETF를 "주식·ETF" 한 카테고리로 통합, 라벨/색상도 피그마 그대로 맞춤
   // 이 배열 순서 = 범례(legend)에 나열되는 순서

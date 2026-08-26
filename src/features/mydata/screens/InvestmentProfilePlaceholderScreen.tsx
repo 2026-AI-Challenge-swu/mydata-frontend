@@ -1,15 +1,28 @@
 import { useLocation } from 'react-router-dom';
 import { useConnectionStore, getOverallStatus } from '../stores/connectionStore';
-import type { InvestmentProfile } from '../../investmentSurvey/types/survey';
+import type { InvestmentProfile, SurveyQuestion } from '../../investmentSurvey/types/survey';
 import { SurveyResultScreen } from '../../investmentSurvey/screens/SurveyResultScreen';
+
+interface NavigationState {
+  profile?: InvestmentProfile;
+  questions?: SurveyQuestion[];
+  answers?: Record<string, number>;
+}
 
 export function InvestmentProfilePlaceholderScreen() {
   const location = useLocation();
   const items = useConnectionStore((state) => state.items);
-  const profile = (location.state as { profile?: InvestmentProfile } | null)?.profile;
+  const { profile, questions, answers } = (location.state as NavigationState | null) ?? {};
 
-  if (profile) {
-    return <SurveyResultScreen profile={profile} connected={getOverallStatus(items) === 'success'} />;
+  if (profile && questions && answers) {
+    return (
+      <SurveyResultScreen
+        profile={profile}
+        questions={questions}
+        answers={answers}
+        connected={getOverallStatus(items) === 'success'}
+      />
+    );
   }
 
   return (

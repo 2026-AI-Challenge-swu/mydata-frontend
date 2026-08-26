@@ -1,26 +1,63 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { InvestmentProfile } from '../types/survey';
+import type { InvestmentProfile, SurveyQuestion } from '../types/survey';
 import { DatabaseIcon } from '../components/icons';
+import { ConsultantSummaryTab } from './ConsultantSummaryTab';
 
 interface SurveyResultScreenProps {
   profile: InvestmentProfile;
+  questions: SurveyQuestion[];
+  answers: Record<string, number>;
   connected: boolean;
 }
 
-export function SurveyResultScreen({ profile, connected }: SurveyResultScreenProps) {
+type ResultTab = 'my-result' | 'consultant-summary';
+
+export function SurveyResultScreen({ profile, questions, answers, connected }: SurveyResultScreenProps) {
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<ResultTab>('my-result');
 
   return (
     <div className="flex w-full flex-1 flex-col bg-[#FAFAF7]">
       <div className="flex w-full border-b-[0.667px] border-black/8">
-        <button className="flex-1 border-b-2 border-[#2A78D6] py-4 text-center text-sm leading-[21px] font-bold text-[#2A78D6]">
+        <button
+          className={`flex-1 border-b-2 py-4 text-center text-sm leading-[21px] font-bold ${
+            activeTab === 'my-result' ? 'border-[#2A78D6] text-[#2A78D6]' : 'border-transparent text-[#6B7280]'
+          }`}
+          onClick={() => setActiveTab('my-result')}
+        >
           내 결과
         </button>
-        <button className="flex-1 border-b-2 border-transparent py-4 text-center text-sm leading-[21px] font-bold text-[#6B7280]">
+        <button
+          className={`flex-1 border-b-2 py-4 text-center text-sm leading-[21px] font-bold ${
+            activeTab === 'consultant-summary' ? 'border-[#2A78D6] text-[#2A78D6]' : 'border-transparent text-[#6B7280]'
+          }`}
+          onClick={() => setActiveTab('consultant-summary')}
+        >
           상담용 요약
         </button>
       </div>
 
+      {activeTab === 'consultant-summary' ? (
+        <ConsultantSummaryTab profile={profile} questions={questions} answers={answers} connected={connected} />
+      ) : (
+        <MyResultTab profile={profile} connected={connected} navigate={navigate} />
+      )}
+    </div>
+  );
+}
+
+function MyResultTab({
+  profile,
+  connected,
+  navigate,
+}: {
+  profile: InvestmentProfile;
+  connected: boolean;
+  navigate: ReturnType<typeof useNavigate>;
+}) {
+  return (
+    <>
       <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-6 pt-6 pb-10">
         {!connected && (
           <div className="flex items-start gap-2.5 rounded-2xl border-[0.667px] border-[#FEE685] bg-[#FFFBEB] px-4 py-3.5">
@@ -65,6 +102,6 @@ export function SurveyResultScreen({ profile, connected }: SurveyResultScreenPro
           </button>
         </div>
       )}
-    </div>
+    </>
   );
 }

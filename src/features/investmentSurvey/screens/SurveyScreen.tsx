@@ -67,7 +67,9 @@ export function SurveyScreen() {
       const profile = await submitSurveyAnswers(
         Object.entries(nextAnswers).map(([questionId, order]) => ({ questionId, selectedOrder: order })),
       );
-      navigate('/mydata/investment-profile', { state: { profile } });
+      // questions/answers도 같이 넘김: 상담용 요약 리포트의 "투자성향 점수" 카테고리별 막대는
+      // 서버 응답(총점만 있음)이 아니라 클라이언트가 가진 문항별 카테고리+점수로 계산하기 때문.
+      navigate('/mydata/investment-profile', { state: { profile, questions, answers: nextAnswers } });
       return;
     }
 
