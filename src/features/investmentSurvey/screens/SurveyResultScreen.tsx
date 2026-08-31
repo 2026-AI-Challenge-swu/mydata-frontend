@@ -1,18 +1,20 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { InvestmentProfile } from '../types/survey';
+import type { InvestmentProfile, SurveyQuestion } from '../types/survey';
 import { DatabaseIcon } from '../components/icons';
 import { FloatingChatButton } from '../components/FloatingChatButton';
 import { CounselingSummaryTab } from '../components/CounselingSummaryTab';
 
 interface SurveyResultScreenProps {
   profile: InvestmentProfile;
+  questions: SurveyQuestion[];
+  answers: Record<string, number>;
   connected: boolean;
 }
 
 type ResultTab = 'result' | 'summary';
 
-export function SurveyResultScreen({ profile, connected }: SurveyResultScreenProps) {
+export function SurveyResultScreen({ profile, questions, answers, connected }: SurveyResultScreenProps) {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<ResultTab>('result');
 
@@ -83,7 +85,19 @@ export function SurveyResultScreen({ profile, connected }: SurveyResultScreenPro
           )}
         </div>
       ) : (
-        <CounselingSummaryTab profile={profile} connected={connected} />
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <CounselingSummaryTab profile={profile} connected={connected} />
+          {connected && (
+            <div className="border-t-[0.667px] border-black/8 bg-[#FAFAF7] px-6 pt-4 pb-4">
+              <button
+                className="w-full rounded-2xl border border-[#2A78D6] py-3 text-sm leading-[21px] font-bold text-[#2A78D6]"
+                onClick={() => navigate('/mydata/investment-profile/report', { state: { profile, questions, answers } })}
+              >
+                더 자세한 리포트 보기
+              </button>
+            </div>
+          )}
+        </div>
       )}
 
       {!connected && (

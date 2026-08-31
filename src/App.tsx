@@ -6,6 +6,7 @@ import { AssetOverviewScreen } from './features/mydata/screens/AssetOverviewScre
 import { InvestmentProfilePlaceholderScreen } from './features/mydata/screens/InvestmentProfilePlaceholderScreen';
 import { SurveyScreen } from './features/investmentSurvey/screens/SurveyScreen';
 import { ChatScreen } from './features/investmentSurvey/screens/ChatScreen';
+import { ExpertReportScreen } from './features/investmentSurvey/screens/ExpertReportScreen';
 
 function PhoneFrame({ children }: { children: React.ReactNode }) {
   return (
@@ -30,6 +31,7 @@ function App() {
         element={<PhoneFrame><InvestmentProfilePlaceholderScreen /></PhoneFrame>}
       />
       <Route path="/mydata/investment-profile/chat" element={<PhoneFrame><ChatScreen /></PhoneFrame>} />
+      <Route path="/mydata/investment-profile/report" element={<PhoneFrame><ExpertReportScreen /></PhoneFrame>} />
     </Routes>
   );
 }

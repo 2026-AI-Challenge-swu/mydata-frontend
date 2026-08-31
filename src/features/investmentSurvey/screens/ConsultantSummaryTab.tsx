@@ -33,8 +33,9 @@ const TARGET_MONTHLY_LIVING_COST = 2_500_000;
 // 부족 자금 계산에 적용하는 물가상승률 가정. 정의서(S4-08)에 방식 자체가 TBD로 남아있던 항목이라
 // 일단 연금 계산과 동일한 방식(미래가치 인플레이션)으로 임시 구현 — 기획 확인 후 공식 조정 필요.
 const INFLATION_RATE = 0.025;
-// IRP 세액공제 한도(연 900만원 납입 기준 최대 절세액). 기존 AssetOverviewScreen에서도 쓰던 값과 동일.
-const MAX_ANNUAL_TAX_SAVING = 990_000;
+// 연금저축·IRP 세액공제 한도(2023년 개정 세법 기준). 합산 연 900만원까지, 총급여 5,500만원 이하 구간 공제율 16.5%.
+// AssetOverviewScreen의 PENSION_TAX_DEDUCTION_LIMIT/RATE와 동일한 계산(900만원 × 16.5% = 148.5만원).
+const MAX_ANNUAL_TAX_SAVING = 1_485_000;
 
 // 투자성향 점수 5개 막대의 카테고리 매핑. 서버는 총점만 주기 때문에,
 // 문항 카테고리+선택한 보기 순서(order == 배점)로 클라이언트에서 직접 계산함.
@@ -70,6 +71,11 @@ function calculateFutureAssetValue({
 
 function formatEok(won: number) {
   return `${(won / 100_000_000).toFixed(1)}억`;
+}
+
+// formatManwon과 달리 소수점 첫째 자리까지 보존(세액공제 한도처럼 148.5만원 같은 반올림 안 되는 값용)
+function formatManwonPrecise(won: number) {
+  return `${(won / 10_000).toLocaleString('ko-KR', { maximumFractionDigits: 1 })}만원`;
 }
 
 export function ConsultantSummaryTab({ profile, questions, answers, connected }: ConsultantSummaryTabProps) {
@@ -198,14 +204,14 @@ export function ConsultantSummaryTab({ profile, questions, answers, connected }:
           <MiniStat label="현재 세액공제" value={formatManwon(currentAnnualTaxSaving)} sub="본인 납입 기준" />
           <MiniStat
             label="추천 설계 시"
-            value={formatManwon(MAX_ANNUAL_TAX_SAVING)}
+            value={formatManwonPrecise(MAX_ANNUAL_TAX_SAVING)}
             sub="연간"
             valueClassName="text-[#2A78D6]"
           />
         </div>
         <div className="mt-3 rounded-2xl bg-[#EBF3FF] px-4 py-3.5 text-center">
           <p className="text-[11px] text-[#2A78D6]">연간 절세 증가</p>
-          <p className="mt-1 text-xl font-bold text-[#2A78D6]">+{formatManwon(additionalAnnualTaxSaving)}</p>
+          <p className="mt-1 text-xl font-bold text-[#2A78D6]">+{formatManwonPrecise(additionalAnnualTaxSaving)}</p>
           <p className="mt-1 text-[11px] text-[#6B7280]">
             10년 누적 약 {formatManwon(additionalAnnualTaxSaving * 10)} 절세
           </p>
