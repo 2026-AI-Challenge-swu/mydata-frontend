@@ -33,4 +33,5 @@ export interface RawSavingsInvestmentResponse {
 export interface RawBankTransactionResponse {
   salary_amt: number;
   expense_amt: number;
+  investment_amt: number;
 }

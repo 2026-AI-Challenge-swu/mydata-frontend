@@ -52,5 +52,6 @@ export function mapBankTransactionResponse(raw: RawBankTransactionResponse): Ban
     monthlyIncome: raw.salary_amt,
     monthlyExpense: raw.expense_amt,
     monthlySavings: raw.salary_amt - raw.expense_amt,
+    monthlyInvestment: raw.investment_amt,
   };
 }
