@@ -1,10 +1,16 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useConnectionStore, getOverallStatus } from '../stores/connectionStore';
 import { loadAllConnectionItems, retryFailedItems } from '../api/loadAllConnectionItems';
 import type { MockScenario } from '../mocks/scenarios';
+import type { InvestmentProfile } from '../../investmentSurvey/types/survey';
 import { ConnectionResultList } from '../components/ConnectionResultList';
 import { ConnectionFailureScreen } from '../components/ConnectionFailureScreen';
+
+interface ConnectionFlowState {
+  returnTo?: 'investment-profile';
+  profile?: InvestmentProfile;
+}
 
 export function MydataConnectionScreen() {
   const items = useConnectionStore((state) => state.items);
@@ -12,6 +18,8 @@ export function MydataConnectionScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [lastScenario, setLastScenario] = useState<MockScenario>('success');
   const navigate = useNavigate();
+  const location = useLocation();
+  const flowState = location.state as ConnectionFlowState | null;
 
   async function runScenario(scenario: MockScenario) {
     setLastScenario(scenario);
@@ -35,11 +43,15 @@ export function MydataConnectionScreen() {
   }
 
   function handleContinue() {
+    if (flowState?.returnTo === 'investment-profile' && flowState.profile) {
+      navigate('/mydata/investment-profile', { state: { profile: flowState.profile } });
+      return;
+    }
     navigate('/mydata/report');
   }
 
   function handleSkip() {
-    navigate('/mydata/report');
+    navigate('/mydata/survey');
   }
 
   return (

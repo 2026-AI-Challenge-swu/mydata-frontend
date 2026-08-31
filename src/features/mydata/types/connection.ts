@@ -44,9 +44,10 @@ export interface SavingsInvestmentData {
 // 은행-004(거래내역) 기반. 실제 스펙은 원본 거래 목록이라 급여/소비를 패턴으로 추정해야 하지만,
 // 계산 방식이 정의서에도 TBD라 이번엔 월급·소비 집계값만 받아서 저축액만 자체 계산
 export interface BankTransactionData {
-  monthlyIncome: number; // 월급(원)
+  monthlyIncome: number; // 월급(세후, 원)
   monthlyExpense: number; // 평균 소비(원)
-  monthlySavings: number; // monthlyIncome - monthlyExpense
+  monthlySavings: number; // monthlyIncome - monthlyExpense (저축+투자 합산 여력)
+  monthlyInvestment: number; // 위 monthlySavings 중 투자로 나간 금액(원)
 }
 
 // 카테고리 문자열 → 해당 카테고리의 실제 데이터 타입을 연결해주는 매핑
