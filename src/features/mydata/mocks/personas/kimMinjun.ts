@@ -6,6 +6,9 @@ import type {
   RawBankTransactionResponse,
 } from '../../types/rawApiResponses';
 
+// 페르소나 나이(만 29세) — 기획팀 페르소나 설계 문서 기준. 마이데이터로 연동되는 값이 아니라 상수로 둠.
+export const kimMinjunAge = 29;
+
 // 국민연금: 공식 API 스펙이 없어(금융 마이데이터 대상 아님) raw 없이 domain 타입으로 바로 mock
 // 값은 기획팀 페르소나 설계 문서 기준 (예상수령액 32만원/월 — 인터페이스 명세서에서 92만원 오기 확인 후 정정, 가입 4년차, 65세 기준)
 export const kimMinjunNationalPension: NationalPensionData = {
@@ -40,8 +43,9 @@ export const kimMinjunSavingsInvestmentRaw: RawSavingsInvestmentResponse = {
   ],
 };
 
-// 월급(세후) 340만원 / 평균 소비 210만원 (페르소나 기준표 기준, 은행-004 스펙 필드명)
+// 월급(세후) 340만원 / 평균 소비 210만원 / 월 투자 40만원 (페르소나 기준표 기준, 은행-004 스펙 필드명)
 export const kimMinjunBankTransactionRaw: RawBankTransactionResponse = {
   salary_amt: 3400000,
   expense_amt: 2100000,
+  investment_amt: 400000,
 };
