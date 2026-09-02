@@ -6,7 +6,7 @@ import type {
 } from '../types/connection';
 import type {
   RawDcRetirementPensionResponse,
-  RawIrpPersonalPensionResponse,
+  RawPersonalPensionResponse,
   RawSavingsInvestmentResponse,
   RawBankTransactionResponse,
 } from '../types/rawApiResponses';
@@ -24,12 +24,20 @@ export function mapRetirementPensionResponse(
   };
 }
 
-// IRP는 계좌가 하나뿐이라(raw에 계좌명이 따로 없음) accounts 배열엔 단일 항목만 들어감.
-// balance는 평가금액(eval_amt), totalContribution은 누적 납입액(accum_amt = employer_amt + employee_amt)
-export function mapPersonalPensionResponse(raw: RawIrpPersonalPensionResponse): PersonalPensionData {
+// IRP/연금저축은 세액공제 한도가 달라서 accountType으로 구분되는 계좌 리스트로 옴.
+// balance는 평가금액(eval_amt), employeeContribution은 본인부담금 누적(employee_amt) — 절세효과 분석용.
+export function mapPersonalPensionResponse(raw: RawPersonalPensionResponse): PersonalPensionData {
+  const accounts = raw.accounts.map((account) => ({
+    accountType: account.account_type,
+    productName: account.account_type === 'IRP' ? 'IRP' : '연금저축',
+    balance: account.eval_amt,
+    employeeContribution: account.employee_amt,
+    issueDate: account.issue_date,
+  }));
+
   return {
-    accounts: [{ productName: 'IRP', balance: raw.eval_amt }],
-    totalContribution: raw.accum_amt,
+    accounts,
+    totalContribution: raw.accounts.reduce((sum, account) => sum + account.accum_amt, 0),
   };
 }
 

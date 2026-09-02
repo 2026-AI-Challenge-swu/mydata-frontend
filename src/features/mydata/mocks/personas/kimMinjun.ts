@@ -1,7 +1,7 @@
 import type { NationalPensionData } from '../../types/connection';
 import type {
   RawDcRetirementPensionResponse,
-  RawIrpPersonalPensionResponse,
+  RawPersonalPensionResponse,
   RawSavingsInvestmentResponse,
   RawBankTransactionResponse,
 } from '../../types/rawApiResponses';
@@ -25,13 +25,19 @@ export const kimMinjunRetirementPensionRaw: RawDcRetirementPensionResponse = {
   issue_date: '2021-03-15',
 };
 
-export const kimMinjunPersonalPensionRaw: RawIrpPersonalPensionResponse = {
-  accum_amt: 4300000,
-  eval_amt: 4450000,
-  employer_amt: 0, // 개인형 IRP는 보통 사용자(회사) 부담금 없이 본인이 자율 납입
-  employee_amt: 4300000,
-  issue_date: '2022-06-01',
-  rcv_start_date: '2054-01-01',
+// 김민준은 연금저축 계좌 없이 IRP만 가입 — accounts 배열엔 IRP 하나만 들어감.
+export const kimMinjunPersonalPensionRaw: RawPersonalPensionResponse = {
+  accounts: [
+    {
+      account_type: 'IRP',
+      accum_amt: 4300000,
+      eval_amt: 4450000,
+      employer_amt: 0, // 개인형 IRP는 보통 사용자(회사) 부담금 없이 본인이 자율 납입
+      employee_amt: 4300000,
+      issue_date: '2022-06-01',
+      rcv_start_date: '2054-01-01',
+    },
+  ],
 };
 
 // 예금 2,000만원 + 주식·ETF 1,200만원(페르소나 기준표) — 주식/ETF 세부 비율은 문서에 없어서 700/500으로 임의 분리

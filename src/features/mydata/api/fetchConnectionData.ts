@@ -3,7 +3,7 @@ import { httpClient } from './httpClient';
 import type { ConnectionCategory, ItemStatus, NationalPensionData } from '../types/connection';
 import type {
   RawDcRetirementPensionResponse,
-  RawIrpPersonalPensionResponse,
+  RawPersonalPensionResponse,
   RawSavingsInvestmentResponse,
   RawBankTransactionResponse,
 } from '../types/rawApiResponses';
@@ -32,7 +32,7 @@ function toDomainData(category: ConnectionCategory, data: unknown) {
     case 'retirementPension':
       return mapRetirementPensionResponse(data as RawDcRetirementPensionResponse);
     case 'personalPension':
-      return mapPersonalPensionResponse(data as RawIrpPersonalPensionResponse);
+      return mapPersonalPensionResponse(data as RawPersonalPensionResponse);
     case 'savingsInvestment':
       return mapSavingsInvestmentResponse(data as RawSavingsInvestmentResponse);
     case 'bankTransaction':

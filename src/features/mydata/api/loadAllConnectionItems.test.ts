@@ -8,12 +8,17 @@ vi.mock('./httpClient', () => {
     'national-pension': { estimatedMonthlyAmount: 320000, paymentStartAge: 65, contributionYears: 4 },
     'retirement-pension': { balance_amt: 3200000, eval_amt: 3200000, issue_date: '2021-03-15' },
     'personal-pension': {
-      accum_amt: 4300000,
-      eval_amt: 4450000,
-      employer_amt: 0,
-      employee_amt: 4300000,
-      issue_date: '2022-06-01',
-      rcv_start_date: '2054-01-01',
+      accounts: [
+        {
+          account_type: 'IRP',
+          accum_amt: 4300000,
+          eval_amt: 4450000,
+          employer_amt: 0,
+          employee_amt: 4300000,
+          issue_date: '2022-06-01',
+          rcv_start_date: '2054-01-01',
+        },
+      ],
     },
     'savings-investment': {
       accounts: [

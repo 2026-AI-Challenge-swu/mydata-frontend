@@ -87,7 +87,7 @@ export function computeAssetSummary({
   savingsInvestment,
   bankTransaction,
 }: ConnectedMydata) {
-  const personalPensionBalance = personalPension.accounts[0]?.balance ?? 0;
+  const personalPensionBalance = personalPension.accounts.reduce((sum, account) => sum + account.balance, 0);
   const cashBalance =
     savingsInvestment.accounts.find((account) => account.productName === '예금')?.balance ?? 0;
   const stockBalance =
