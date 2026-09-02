@@ -1,6 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useConnectionStore, getOverallStatus } from '../../mydata/stores/connectionStore';
-import { LeftArrowIcon } from '../components/icons';
 import { ConsultantSummaryTab } from './ConsultantSummaryTab';
 import type { InvestmentProfile, SurveyQuestion } from '../types/survey';
 
@@ -25,16 +24,6 @@ export function ExpertReportScreen() {
 
   return (
     <div className="flex w-full flex-1 flex-col bg-[#FAFAF7]">
-      <div className="flex items-center gap-3 border-b-[0.667px] border-black/8 bg-white px-5 pt-3.5 pb-3.5">
-        <button
-          className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F0F0EC]"
-          onClick={() => navigate(-1)}
-          aria-label="이전으로"
-        >
-          <LeftArrowIcon />
-        </button>
-        <p className="text-sm leading-[21px] font-bold text-[#1A1A2E]">전문가용 리포트</p>
-      </div>
       <ConsultantSummaryTab
         profile={profile}
         questions={questions}

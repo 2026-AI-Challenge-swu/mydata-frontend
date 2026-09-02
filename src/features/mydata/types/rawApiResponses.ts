@@ -8,14 +8,20 @@ export interface RawDcRetirementPensionResponse {
   issue_date: string;
 }
 
-// 개인형 IRP 계좌 기본정보 (API ID: IRP-002)
-export interface RawIrpPersonalPensionResponse {
+// 개인연금 계좌 기본정보 (API ID: IRP-002 / 금투-005). IRP와 연금저축은 세액공제 한도가 달라서
+// 계좌 리스트로 내려오고, account_type으로 어느 상품인지 구분함.
+export interface RawPersonalPensionAccount {
+  account_type: 'IRP' | 'PENSION_SAVINGS';
   accum_amt: number;
   eval_amt: number;
   employer_amt: number;
   employee_amt: number;
   issue_date: string;
   rcv_start_date: string;
+}
+
+export interface RawPersonalPensionResponse {
+  accounts: RawPersonalPensionAccount[];
 }
 
 // 계좌 목록(은행-001) + 추가정보(은행-003)를 합쳐서 항목당 필요한 필드만 추림

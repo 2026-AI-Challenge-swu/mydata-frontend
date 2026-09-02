@@ -22,13 +22,16 @@ export interface RetirementPensionData {
 }
 
 export interface PersonalPensionAccount {
+  accountType: 'IRP' | 'PENSION_SAVINGS';
   productName: string;
   balance: number;
+  employeeContribution: number; // 본인부담금 누적(원) — 절세효과 분석 API 호출용
+  issueDate: string; // 계좌 개설일(YYYY-MM-DD)
 }
 
 export interface PersonalPensionData {
   accounts: PersonalPensionAccount[];
-  totalContribution: number; // 총 납입액(원)
+  totalContribution: number; // 총 납입액(원, 전 계좌 합산)
 }
 
 export interface SavingsInvestmentAccount {
