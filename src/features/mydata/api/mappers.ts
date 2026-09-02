@@ -21,6 +21,7 @@ export function mapRetirementPensionResponse(
     type: 'DC',
     balance: raw.balance_amt,
     evaluationAmount: raw.eval_amt,
+    issueDate: raw.issue_date,
   };
 }
 
@@ -31,8 +32,11 @@ export function mapPersonalPensionResponse(raw: RawPersonalPensionResponse): Per
     accountType: account.account_type,
     productName: account.account_type === 'IRP' ? 'IRP' : '연금저축',
     balance: account.eval_amt,
+    accumAmt: account.accum_amt,
+    employerAmt: account.employer_amt,
     employeeContribution: account.employee_amt,
     issueDate: account.issue_date,
+    rcvStartDate: account.rcv_start_date,
   }));
 
   return {

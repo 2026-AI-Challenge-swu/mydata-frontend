@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AiAvatarIcon, AlertCircleIcon, BankIcon, DownloadIcon, HomeIcon, ShareIcon } from '../components/icons';
-import { analyzeTaxSaving, type TaxSavingAnalysisResponse } from '../api/taxSavingApi';
-import { analyzeReport, type ReportAnalysisResponse } from '../api/reportApi';
+import {
+  generateRetirementReport,
+  type PortfolioRecommendationResult,
+  type RetirementReportResult,
+} from '../api/retirementReportApi';
 import { useConnectionStore } from '../../mydata/stores/connectionStore';
 import {
-  ASSUMED_ANNUAL_RETURN_RATE,
   CURRENT_AGE,
   PENSION_PAYOUT_YEARS,
   calculateRetirementMonthlyPension,
@@ -36,6 +38,17 @@ const PERSONA = {
   personalContributionBySelf: 0,
 };
 
+// 연금저축 계좌의 연간 납입액 추정치 — 정의서에 실제 값이 없어서, 이번에 백엔드에서 삭제된
+// "누적납입액÷가입연수" 방식을 그대로 재현한 임시 값. 정의서에 확정값이 생기면 이 함수 대신
+// 그 값을 써야 함(2026-09-02 기획 확인 보류). 김민준 페르소나는 연금저축 계좌가 없어 미사용.
+function estimateAnnualContribution(accumAmt: number, issueDate: string): number {
+  const elapsedYears = Math.max(
+    1,
+    new Date().getFullYear() - new Date(issueDate).getFullYear(),
+  );
+  return Math.round(accumAmt / elapsedYears);
+}
+
 // "목표 생활비"는 정의서에 국민연금연구원 통계 기본값으로 명시된 페르소나 상수값.
 const TARGET_MONTHLY_LIVING_COST = 2_500_000;
 // 부족 자금 계산에 적용하는 물가상승률 가정(정의서 S4-08 이슈#7 확정: 91만원×12개월×20년×(1.025)^36년 방식, 기획팀 검증 완료).
@@ -54,27 +67,6 @@ const SCORE_BAR_CATEGORIES: { category: string; label: string; color: string }[]
 
 // 미래 자산 시뮬레이션 3개 시나리오 박스 색상(현재 유지/+20만/+40만 순서, Figma 확인값).
 const SCENARIO_COLORS = ['#9CA3AF', '#2196F3', '#1FAB6A'];
-
-function calculateFutureAssetValue({
-  currentTotal,
-  monthlyExtraContribution,
-  years,
-}: {
-  currentTotal: number;
-  monthlyExtraContribution: number;
-  years: number;
-}) {
-  const monthlyRate = ASSUMED_ANNUAL_RETURN_RATE / 12;
-  const months = years * 12;
-
-  const futureValueOfCurrent = currentTotal * Math.pow(1 + ASSUMED_ANNUAL_RETURN_RATE, years);
-  const futureValueOfContributions =
-    monthlyExtraContribution === 0
-      ? 0
-      : monthlyExtraContribution * ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate);
-
-  return futureValueOfCurrent + futureValueOfContributions;
-}
 
 function formatEok(won: number) {
   return `${(won / 100_000_000).toFixed(1)}억`;
@@ -96,99 +88,74 @@ export function ConsultantSummaryTab({ profile, questions, answers, connected }:
   const [isEditingGoal, setIsEditingGoal] = useState(false);
   const [draftGoalManwon, setDraftGoalManwon] = useState(TARGET_MONTHLY_LIVING_COST / 10_000);
   const [draftRetirementAge, setDraftRetirementAge] = useState(65);
-  const [taxSaving, setTaxSaving] = useState<TaxSavingAnalysisResponse | null>(null);
   const connectedMydata = getConnectedMydata(items);
-  const personalPension = connectedMydata?.personalPension;
+  const [retirementReport, setRetirementReport] = useState<RetirementReportResult | null>(null);
 
-  // 절세효과 분석은 백엔드 /api/tax-saving/analysis(hyojin 구현)를 그대로 호출 — 프론트에서 재계산하지 않음.
-  // IRP/연금저축은 세액공제 한도가 달라서(연금저축 단독 600만원, 합산 900만원) 계좌 리스트에서 accountType으로
-  // 각각 구분해서 전달 — 연금저축 계좌가 없으면 자연히 0원(가정이 아니라 실제로 계좌가 없어서 0).
-  // 개인연금(IRP) 본인 납입액은 정의서 확정값(0원, PERSONA.personalContributionBySelf)을 그대로 전달 —
-  // mock의 employee_amt(누적값)는 "이번 해 납입액"과는 다른 개념이라 사용하지 않음.
-  const irpAccount = personalPension?.accounts.find((account) => account.accountType === 'IRP');
-  const pensionSavingsAccount = personalPension?.accounts.find(
-    (account) => account.accountType === 'PENSION_SAVINGS',
-  );
-
-  useEffect(() => {
-    if (!irpAccount) return;
-    analyzeTaxSaving({
-      totalSalary: PERSONA.annualSalaryPreTax,
-      pensionSavingsAccumAmt: pensionSavingsAccount?.employeeContribution ?? 0,
-      pensionSavingsIssueDate: pensionSavingsAccount?.issueDate ?? irpAccount.issueDate,
-      personalPensionEmployeeAmt: PERSONA.personalContributionBySelf,
-      personalPensionIssueDate: irpAccount.issueDate,
-    })
-      .then(setTaxSaving)
-      .catch(() => setTaxSaving(null));
-  }, [irpAccount?.issueDate, pensionSavingsAccount?.employeeContribution, pensionSavingsAccount?.issueDate]);
-
-  const [report, setReport] = useState<ReportAnalysisResponse | null>(null);
-
-  // "AI 종합 의견"/"실행 로드맵"/"상담 포인트"는 백엔드 /api/report(hyojin 구현, 외부 AI 리포트 생성 서비스 프록시)를
-  // 호출해서 받아옴. 외부 서비스가 꺼져있으면 502가 나므로 그 경우 report는 null로 두고 기존 데모 문구로 폴백.
+  // 절세효과/미래자산 시뮬레이션/추천 포트폴리오/AI 리포트를 각각 따로 호출하던 것을 백엔드
+  // /api/retirement-report(효진 구현) 하나로 통합 — mydata 스냅샷+설문답변을 보내면 전부 계산해서 반환해줌.
+  // annualContribution(연간 납입액)은 세액공제 계산에만 쓰이는데, IRP는 정의서 확정값(0원,
+  // PERSONA.personalContributionBySelf)을 그대로 쓰고, 연금저축 계좌는 정의서에 값이 없어서
+  // 예전 백엔드 로직(누적납입액÷가입연수)을 estimateAnnualContribution()으로 임시 재현함 —
+  // 김민준 페르소나는 연금저축 계좌가 아예 없어서 지금은 이 분기가 실행되지 않음(정의서 확인 전까지 보류).
   useEffect(() => {
     if (!connectedMydata) return;
-    const reportSummary = computeAssetSummary(connectedMydata);
-    const ageBand = getAgeBand(CURRENT_AGE);
-    const allocationPlan = PORTFOLIO_ALLOCATION_PLAN[profile.grade] ?? PORTFOLIO_ALLOCATION_PLAN[3];
-    const allocation = allocationPlan.byAgeGender[ageBand][PERSONA.gender];
-    const portfolio = ALLOCATION_CATEGORY_META.map((meta) => ({
-      category: meta.label,
-      weightPercent: allocation[meta.key],
-    })).filter((item) => item.weightPercent > 0);
 
-    const yearsToTarget = retirementAge - CURRENT_AGE;
-    const expectedAssetAtRetirement = calculateFutureAssetValue({
-      currentTotal: reportSummary.totalAssets,
-      monthlyExtraContribution: 0,
-      years: yearsToTarget,
-    });
-    // "20년 후 자산 증가액" 정의가 정의서에 없어 순수 복리 증식분(20년 후 미래가치 − 현재 총자산)으로 임시 구현.
-    const assetAfter20Years = calculateFutureAssetValue({
-      currentTotal: reportSummary.totalAssets,
-      monthlyExtraContribution: 0,
-      years: 20,
-    });
+    const surveyAnswers = Object.entries(answers).map(([questionId, selectedOrder]) => ({
+      questionId,
+      selectedOrder,
+    }));
 
-    analyzeReport({
-      userProfile: {
-        totalScore: profile.totalScore,
-        type: profile.type,
-        grade: profile.grade,
-        emoji: profile.emoji,
-        officialName: profile.officialName,
-        nickname: profile.nickname,
-        description: profile.description,
-      },
-      portfolio,
-      retirementPlan: {
-        monthlyContribution: connectedMydata.bankTransaction.monthlyInvestment,
-        currentAge: CURRENT_AGE,
-        targetAge: retirementAge,
-        expectedReturnRate: ASSUMED_ANNUAL_RETURN_RATE,
-        totalContribution: connectedMydata.retirementPension.balance + connectedMydata.personalPension.totalContribution,
-        expectedProfit: Math.max(expectedAssetAtRetirement - reportSummary.totalAssets, 0),
-        taxBenefit: taxSaving?.recommendedDeductionAmount ?? 0,
-        expectedAssetAtRetirement,
-      },
-      metrics: {
-        annualTaxBenefit: taxSaving?.recommendedDeductionAmount ?? 0,
-        assetAt65: expectedAssetAtRetirement,
-        assetIncreaseAfter20Years: Math.max(assetAfter20Years - reportSummary.totalAssets, 0),
-        cumulativeTaxBenefit: (taxSaving?.increaseAmount ?? 0) * 10,
+    generateRetirementReport({
+      surveyAnswers,
+      currentAge: CURRENT_AGE,
+      gender: PERSONA.gender === '남' ? 'MALE' : 'FEMALE',
+      targetLivingCost: goalLivingCost,
+      mydata: {
+        annualGrossSalary: PERSONA.annualSalaryPreTax,
+        nationalPension: {
+          estimatedMonthlyAmount: connectedMydata.nationalPension.estimatedMonthlyAmount,
+          paymentStartAge: connectedMydata.nationalPension.paymentStartAge,
+          contributionYears: connectedMydata.nationalPension.contributionYears,
+        },
+        retirementPension: {
+          balanceAmt: connectedMydata.retirementPension.balance,
+          evalAmt: connectedMydata.retirementPension.evaluationAmount,
+          issueDate: connectedMydata.retirementPension.issueDate,
+        },
+        personalPensionAccounts: connectedMydata.personalPension.accounts.map((account) => ({
+          accountType: account.accountType,
+          accumAmt: account.accumAmt,
+          evalAmt: account.balance,
+          employerAmt: account.employerAmt,
+          employeeAmt: account.employeeContribution,
+          issueDate: account.issueDate,
+          rcvStartDate: account.rcvStartDate,
+          annualContribution:
+            account.accountType === 'IRP'
+              ? PERSONA.personalContributionBySelf
+              : estimateAnnualContribution(account.accumAmt, account.issueDate),
+        })),
+        savingsInvestment: {
+          accounts: connectedMydata.savingsInvestment.accounts.map((account) => ({
+            prodName: account.productName,
+            balanceAmt: account.balance,
+          })),
+        },
+        bankTransaction: {
+          salaryAmt: connectedMydata.bankTransaction.monthlyIncome,
+          expenseAmt: connectedMydata.bankTransaction.monthlyExpense,
+        },
       },
     })
-      .then(setReport)
-      .catch(() => setReport(null));
+      .then(setRetirementReport)
+      .catch(() => setRetirementReport(null));
   }, [
     connectedMydata?.retirementPension.balance,
-    connectedMydata?.bankTransaction.monthlyInvestment,
     connectedMydata?.personalPension.totalContribution,
-    retirementAge,
-    profile.grade,
-    profile.totalScore,
-    taxSaving,
+    connectedMydata?.savingsInvestment.totalBalance,
+    connectedMydata?.bankTransaction.monthlyIncome,
+    goalLivingCost,
+    answers,
   ]);
 
   if (!connected) {
@@ -208,7 +175,6 @@ export function ConsultantSummaryTab({ profile, questions, answers, connected }:
 
   const { nationalPension, retirementPension, bankTransaction } = connectedMydata;
   const summary = computeAssetSummary(connectedMydata);
-  const yearsToRetirement = nationalPension.paymentStartAge - CURRENT_AGE;
 
   // "노후 부족 자금 분석" 카드의 수정 팝업(목표생활비/희망은퇴나이)에 따른 what-if 재계산.
   // 다른 섹션(자산 현황, 미래 자산 시뮬레이션 등)의 기준값에는 영향을 주지 않도록 이 카드 전용 변수로 분리.
@@ -234,18 +200,15 @@ export function ConsultantSummaryTab({ profile, questions, answers, connected }:
     return { label, percent, color };
   });
 
+  // 미래 자산 시뮬레이션은 백엔드 /api/retirement-report의 futureAssetSimulation.points(currentAge~65세,
+  // 1년 단위)를 그대로 사용 — 로컬 복리 계산은 더 이상 하지 않음. 마지막 포인트(65세)가 3개 시나리오 카드 값.
+  const futureAssetPoints = retirementReport?.futureAssetSimulation.points ?? [];
+  const lastFutureAssetPoint = futureAssetPoints[futureAssetPoints.length - 1];
   const scenarios = [
-    { label: '현재 유지', monthlyExtra: 0 },
-    { label: '+20만/월', monthlyExtra: 200_000 },
-    { label: '+40만/월', monthlyExtra: 400_000 },
-  ].map((scenario) => ({
-    ...scenario,
-    futureValue: calculateFutureAssetValue({
-      currentTotal: summary.totalAssets,
-      monthlyExtraContribution: scenario.monthlyExtra,
-      years: yearsToRetirement,
-    }),
-  }));
+    { label: '현재 유지', futureValue: lastFutureAssetPoint?.maintainAmount ?? 0 },
+    { label: '+20만/월', futureValue: lastFutureAssetPoint?.plus20Amount ?? 0 },
+    { label: '+40만/월', futureValue: lastFutureAssetPoint?.plus40Amount ?? 0 },
+  ];
 
   return (
     <div className="flex flex-1 flex-col gap-4 overflow-y-auto bg-[#FAFAF7] px-6 pt-6 pb-10">
@@ -361,21 +324,24 @@ export function ConsultantSummaryTab({ profile, questions, answers, connected }:
         />
       )}
 
-      <RecommendedPortfolioSection grade={profile.grade} officialName={profile.officialName} />
+      <RecommendedPortfolioSection
+        officialName={profile.officialName}
+        recommendedPortfolio={retirementReport?.recommendedPortfolio}
+      />
 
       <Section title="절세 효과 분석">
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-2xl bg-[#F0F0EC] p-3 text-center">
             <p className="text-[10px] leading-[15px] text-[#6B7280]">현재 세액공제</p>
             <p className="text-[18px] leading-[27px] font-extrabold text-[#6B7280]">
-              {taxSaving?.currentDeductionAmount ? formatManwon(taxSaving.currentDeductionAmount) : '0원'}
+              {retirementReport?.taxSavingAnalysis.currentDeductionAmount ? formatManwon(retirementReport.taxSavingAnalysis.currentDeductionAmount) : '0원'}
             </p>
             <p className="text-[10px] leading-[15px] text-[#6B7280]">본인 납입 없음</p>
           </div>
           <div className="rounded-2xl bg-[#EBF3FF] p-3 text-center">
             <p className="text-[10px] leading-[15px] text-[#2A78D6]">추천 설계 시</p>
             <p className="text-[18px] leading-[27px] font-extrabold text-[#2A78D6]">
-              {formatManwonPrecise(taxSaving?.recommendedDeductionAmount ?? 0)}
+              {formatManwonPrecise(retirementReport?.taxSavingAnalysis.recommendedDeductionAmount ?? 0)}
             </p>
             <p className="text-[10px] leading-[15px] text-[#2A78D6]">연간</p>
           </div>
@@ -383,10 +349,10 @@ export function ConsultantSummaryTab({ profile, questions, answers, connected }:
         <div className="mt-3 rounded-2xl bg-[#EBF3FF] py-3 text-center">
           <p className="text-[11px] leading-[16.5px] text-[#6B7280]">연간 절세 증가</p>
           <p className="text-[26px] leading-[39px] font-extrabold text-[#2A78D6]">
-            +{formatManwonPrecise(taxSaving?.increaseAmount ?? 0)}
+            +{formatManwonPrecise(retirementReport?.taxSavingAnalysis.increaseAmount ?? 0)}
           </p>
           <p className="text-[10px] leading-[15px] text-[#6B7280]">
-            10년 누적 약 {formatManwon((taxSaving?.increaseAmount ?? 0) * 10)} 절세
+            10년 누적 약 {formatManwon((retirementReport?.taxSavingAnalysis.increaseAmount ?? 0) * 10)} 절세
           </p>
         </div>
       </Section>
@@ -407,12 +373,12 @@ export function ConsultantSummaryTab({ profile, questions, answers, connected }:
             </div>
           ))}
         </div>
-        <FutureAssetChart currentTotal={summary.totalAssets} yearsToRetirement={yearsToRetirement} />
+        <FutureAssetChart points={futureAssetPoints} />
       </Section>
 
-      <AiSummarySection totalComment={report?.total_comment} />
-      <RoadmapSection roadMap={report?.road_map} />
-      <ConsultingPointsSection counsellingPoints={report?.counselling_points} />
+      <AiSummarySection totalComment={retirementReport?.aiReport.total_comment} />
+      <RoadmapSection roadMap={retirementReport?.aiReport.road_map} />
+      <ConsultingPointsSection counsellingPoints={retirementReport?.aiReport.counselling_points} />
       <RecommendedProductsSection />
 
       <Section title={<span className="font-bold">상담 메모</span>}>
@@ -686,178 +652,36 @@ function MiniStat({
   );
 }
 
-type AgeBand = '20-24' | '25-29' | '30-34' | '35-39';
-
-interface AllocationRow {
-  pensionSavingsStock: number;
-  pensionSavingsBond: number;
-  irpStock: number;
-  irpBond: number;
-  irpGuaranteed: number;
-}
-
-interface GradeAllocationPlan {
-  phrases: string[];
-  byAgeGender: Record<AgeBand, Record<'남' | '여', AllocationRow>>;
-}
-
-// 기획팀 정의 "투자성향 × 연령 × 성별 자산 배분 기준표"(룰 기반, AI 미사용). DC 기본안(원리금보장/채권형/주식형 비중)은
-// 이 도넛차트 대상이 아니라 별도 관리 항목이라 미반영.
-const PORTFOLIO_ALLOCATION_PLAN: Record<number, GradeAllocationPlan> = {
-  1: {
-    phrases: [
-      '원리금보장형 상품 우선 편입',
-      '연금저축은 채권형 상품 중심으로 운용',
-      '시장 변동성이 커질 경우 자산배분 재점검',
-    ],
-    byAgeGender: {
-      '20-24': {
-        남: { pensionSavingsStock: 0, pensionSavingsBond: 25, irpStock: 0, irpBond: 20, irpGuaranteed: 55 },
-        여: { pensionSavingsStock: 5, pensionSavingsBond: 25, irpStock: 0, irpBond: 15, irpGuaranteed: 55 },
-      },
-      '25-29': {
-        남: { pensionSavingsStock: 0, pensionSavingsBond: 25, irpStock: 0, irpBond: 20, irpGuaranteed: 55 },
-        여: { pensionSavingsStock: 5, pensionSavingsBond: 25, irpStock: 0, irpBond: 15, irpGuaranteed: 55 },
-      },
-      '30-34': {
-        남: { pensionSavingsStock: 0, pensionSavingsBond: 20, irpStock: 0, irpBond: 20, irpGuaranteed: 60 },
-        여: { pensionSavingsStock: 0, pensionSavingsBond: 20, irpStock: 0, irpBond: 20, irpGuaranteed: 60 },
-      },
-      '35-39': {
-        남: { pensionSavingsStock: 0, pensionSavingsBond: 15, irpStock: 0, irpBond: 20, irpGuaranteed: 65 },
-        여: { pensionSavingsStock: 0, pensionSavingsBond: 15, irpStock: 0, irpBond: 20, irpGuaranteed: 65 },
-      },
-    },
-  },
-  2: {
-    phrases: [
-      '연금저축 세액공제 한도 우선 활용',
-      '채권형 상품으로 안정성을 확보하면서 주식형 상품 일부 편입',
-      '연 1회 자산배분 점검',
-    ],
-    byAgeGender: {
-      '20-24': {
-        남: { pensionSavingsStock: 20, pensionSavingsBond: 25, irpStock: 10, irpBond: 20, irpGuaranteed: 25 },
-        여: { pensionSavingsStock: 25, pensionSavingsBond: 25, irpStock: 15, irpBond: 20, irpGuaranteed: 15 },
-      },
-      '25-29': {
-        남: { pensionSavingsStock: 15, pensionSavingsBond: 25, irpStock: 10, irpBond: 20, irpGuaranteed: 30 },
-        여: { pensionSavingsStock: 20, pensionSavingsBond: 25, irpStock: 15, irpBond: 20, irpGuaranteed: 20 },
-      },
-      '30-34': {
-        남: { pensionSavingsStock: 10, pensionSavingsBond: 25, irpStock: 10, irpBond: 25, irpGuaranteed: 30 },
-        여: { pensionSavingsStock: 15, pensionSavingsBond: 25, irpStock: 10, irpBond: 25, irpGuaranteed: 25 },
-      },
-      '35-39': {
-        남: { pensionSavingsStock: 10, pensionSavingsBond: 25, irpStock: 0, irpBond: 25, irpGuaranteed: 40 },
-        여: { pensionSavingsStock: 10, pensionSavingsBond: 25, irpStock: 0, irpBond: 25, irpGuaranteed: 40 },
-      },
-    },
-  },
-  3: {
-    phrases: [
-      'TDF 등을 활용해 장기적인 자산배분 관리',
-      '국내·해외 주식 및 채권 분산',
-      '시장 상황에 따라 정기적으로 리밸런싱',
-    ],
-    byAgeGender: {
-      '20-24': {
-        남: { pensionSavingsStock: 35, pensionSavingsBond: 20, irpStock: 20, irpBond: 15, irpGuaranteed: 10 },
-        여: { pensionSavingsStock: 40, pensionSavingsBond: 20, irpStock: 20, irpBond: 15, irpGuaranteed: 5 },
-      },
-      '25-29': {
-        남: { pensionSavingsStock: 30, pensionSavingsBond: 20, irpStock: 20, irpBond: 20, irpGuaranteed: 10 },
-        여: { pensionSavingsStock: 35, pensionSavingsBond: 20, irpStock: 20, irpBond: 20, irpGuaranteed: 5 },
-      },
-      '30-34': {
-        남: { pensionSavingsStock: 25, pensionSavingsBond: 20, irpStock: 15, irpBond: 20, irpGuaranteed: 20 },
-        여: { pensionSavingsStock: 30, pensionSavingsBond: 20, irpStock: 20, irpBond: 20, irpGuaranteed: 10 },
-      },
-      '35-39': {
-        남: { pensionSavingsStock: 20, pensionSavingsBond: 20, irpStock: 15, irpBond: 25, irpGuaranteed: 20 },
-        여: { pensionSavingsStock: 25, pensionSavingsBond: 20, irpStock: 15, irpBond: 25, irpGuaranteed: 15 },
-      },
-    },
-  },
-  4: {
-    phrases: [
-      '국내·해외 분산 ETF 중심으로 장기 투자',
-      '반기 1회 이상 자산배분 점검',
-      '단기 시장 변동성을 감당할 수 있는 경우 적합',
-    ],
-    byAgeGender: {
-      '20-24': {
-        남: { pensionSavingsStock: 45, pensionSavingsBond: 10, irpStock: 30, irpBond: 10, irpGuaranteed: 5 },
-        여: { pensionSavingsStock: 50, pensionSavingsBond: 10, irpStock: 30, irpBond: 10, irpGuaranteed: 0 },
-      },
-      '25-29': {
-        남: { pensionSavingsStock: 40, pensionSavingsBond: 15, irpStock: 30, irpBond: 10, irpGuaranteed: 5 },
-        여: { pensionSavingsStock: 45, pensionSavingsBond: 15, irpStock: 30, irpBond: 10, irpGuaranteed: 0 },
-      },
-      '30-34': {
-        남: { pensionSavingsStock: 35, pensionSavingsBond: 15, irpStock: 30, irpBond: 15, irpGuaranteed: 5 },
-        여: { pensionSavingsStock: 40, pensionSavingsBond: 15, irpStock: 30, irpBond: 15, irpGuaranteed: 0 },
-      },
-      '35-39': {
-        남: { pensionSavingsStock: 30, pensionSavingsBond: 15, irpStock: 25, irpBond: 20, irpGuaranteed: 10 },
-        여: { pensionSavingsStock: 35, pensionSavingsBond: 15, irpStock: 30, irpBond: 20, irpGuaranteed: 0 },
-      },
-    },
-  },
-  5: {
-    phrases: [
-      '국내·해외 주식형 ETF 중심의 장기 분산투자',
-      '분기 1회 이상 포트폴리오 점검',
-      '높은 단기 손실 가능성을 감내할 수 있는 투자자에게 적합',
-    ],
-    byAgeGender: {
-      '20-24': {
-        남: { pensionSavingsStock: 55, pensionSavingsBond: 0, irpStock: 35, irpBond: 5, irpGuaranteed: 5 },
-        여: { pensionSavingsStock: 60, pensionSavingsBond: 0, irpStock: 35, irpBond: 5, irpGuaranteed: 0 },
-      },
-      '25-29': {
-        남: { pensionSavingsStock: 50, pensionSavingsBond: 5, irpStock: 35, irpBond: 5, irpGuaranteed: 5 },
-        여: { pensionSavingsStock: 55, pensionSavingsBond: 5, irpStock: 35, irpBond: 5, irpGuaranteed: 0 },
-      },
-      '30-34': {
-        남: { pensionSavingsStock: 45, pensionSavingsBond: 10, irpStock: 35, irpBond: 5, irpGuaranteed: 5 },
-        여: { pensionSavingsStock: 50, pensionSavingsBond: 10, irpStock: 35, irpBond: 5, irpGuaranteed: 0 },
-      },
-      '35-39': {
-        남: { pensionSavingsStock: 40, pensionSavingsBond: 10, irpStock: 35, irpBond: 10, irpGuaranteed: 5 },
-        여: { pensionSavingsStock: 45, pensionSavingsBond: 10, irpStock: 35, irpBond: 10, irpGuaranteed: 0 },
-      },
-    },
-  },
-};
-
-function getAgeBand(age: number): AgeBand {
-  if (age <= 24) return '20-24';
-  if (age <= 29) return '25-29';
-  if (age <= 34) return '30-34';
-  return '35-39';
-}
-
-const ALLOCATION_CATEGORY_META: { key: keyof AllocationRow; label: string }[] = [
-  { key: 'pensionSavingsStock', label: '연금저축 주식' },
-  { key: 'pensionSavingsBond', label: '연금저축 채권' },
-  { key: 'irpStock', label: 'IRP 주식' },
-  { key: 'irpBond', label: 'IRP 채권' },
-  { key: 'irpGuaranteed', label: 'IRP 원리금보장' },
-];
-
 // 도넛차트 색상 — 카테고리별 고정색이 아니라 비중 순위에 따라 진한 파랑→연한 파랑 그라데이션(Figma 확인값).
 const DONUT_COLOR_SCALE = ['#2A78D6', '#64A8EF', '#99C6F7', '#C4E0FF', '#E7F4FF'];
 
-function RecommendedPortfolioSection({ grade, officialName }: { grade: number; officialName: string }) {
-  const plan = PORTFOLIO_ALLOCATION_PLAN[grade] ?? PORTFOLIO_ALLOCATION_PLAN[3];
-  const ageBand = getAgeBand(CURRENT_AGE);
-  const allocation = plan.byAgeGender[ageBand][PERSONA.gender];
+// 추천 포트폴리오 배분은 예전엔 프론트 로컬 표(PORTFOLIO_ALLOCATION_PLAN)에서 바로 읽었는데, 이제
+// 백엔드 /api/retirement-report의 recommendedPortfolio(PortfolioTemplateSeeder, 같은 기준표를 MongoDB로 이전)
+// 응답을 그대로 씀 — 로컬 표는 삭제하고 백엔드 값을 그대로 신뢰하기로 함(2026-09-02).
+function RecommendedPortfolioSection({
+  officialName,
+  recommendedPortfolio,
+}: {
+  officialName: string;
+  recommendedPortfolio?: PortfolioRecommendationResult;
+}) {
+  if (!recommendedPortfolio) {
+    return (
+      <Section title="추천 포트폴리오">
+        <p className="text-[12px] leading-[18px] text-[#6B7280]">불러오는 중...</p>
+      </Section>
+    );
+  }
 
-  const slices = ALLOCATION_CATEGORY_META.map((meta) => ({ ...meta, percent: allocation[meta.key] }))
-    .filter((slice) => slice.percent > 0)
-    .sort((a, b) => b.percent - a.percent) // 도넛차트는 비중 많은 순으로 그림.
-    .map((slice, index) => ({ ...slice, color: DONUT_COLOR_SCALE[index] ?? DONUT_COLOR_SCALE[DONUT_COLOR_SCALE.length - 1] }));
+  const slices = recommendedPortfolio.compositions
+    .filter((composition) => composition.weightPercent > 0)
+    .sort((a, b) => b.weightPercent - a.weightPercent) // 도넛차트는 비중 많은 순으로 그림.
+    .map((composition, index) => ({
+      key: composition.category,
+      label: composition.category,
+      percent: composition.weightPercent,
+      color: DONUT_COLOR_SCALE[index] ?? DONUT_COLOR_SCALE[DONUT_COLOR_SCALE.length - 1],
+    }));
 
   const circumference = 100;
   const arcs = slices.reduce<{ slice: (typeof slices)[number]; cumulative: number }[]>((acc, slice) => {
@@ -903,7 +727,7 @@ function RecommendedPortfolioSection({ grade, officialName }: { grade: number; o
         </ul>
       </div>
       <ul className="mt-3 flex flex-col gap-1.5 text-[11px] leading-[16.5px] text-[#6B7280]">
-        {plan.phrases.map((phrase) => (
+        {recommendedPortfolio.recommendationReasons.map((phrase) => (
           <li key={phrase} className="flex items-center gap-1.5">
             <svg viewBox="0 0 9 7" className="h-[5.5px] w-2 shrink-0" aria-hidden="true">
               <path
@@ -934,26 +758,37 @@ function getNiceAxisMax(rawMax: number) {
   return { max: step * 4, step };
 }
 
-function FutureAssetChart({ currentTotal, yearsToRetirement }: { currentTotal: number; yearsToRetirement: number }) {
+// points: 백엔드 futureAssetSimulation.points(currentAge~65세, 1년 단위) 중 "현재 유지" 라인(maintainAmount)만.
+// 예전엔 로컬에서 복리 공식을 6개 지점만 다시 계산했는데, 이제 실제 연도별 값이 이미 다 내려오니
+// 그중 6개 지점만 균등 샘플링해서 그림(축 라벨이 6개인 Figma 시안에 맞춤).
+function FutureAssetChart({ points }: { points: { age: number; maintainAmount: number }[] }) {
   const plotWidth = 239;
   const plotHeight = 110;
 
-  const rawMaxValue = calculateFutureAssetValue({ currentTotal, monthlyExtraContribution: 0, years: yearsToRetirement });
+  if (points.length === 0) return null;
+
+  const startAge = points[0].age;
+  const totalYears = points[points.length - 1].age - startAge;
+
+  const rawMaxValue = points[points.length - 1].maintainAmount;
   const { max: axisMaxInEok, step: axisStepInEok } = getNiceAxisMax(rawMaxValue / 100_000_000);
   const axisMaxValue = axisMaxInEok * 100_000_000;
 
-  const points = Array.from({ length: 6 }, (_, index) => {
-    const year = Math.round((yearsToRetirement * index) / 5);
-    const value = calculateFutureAssetValue({ currentTotal, monthlyExtraContribution: 0, years: year });
+  const sampledPoints = Array.from({ length: 6 }, (_, index) => {
+    const year = totalYears === 0 ? 0 : Math.round((totalYears * index) / 5);
+    const value = points.find((point) => point.age - startAge === year)?.maintainAmount ?? rawMaxValue;
+    const x = totalYears === 0 ? 0 : (year / totalYears) * plotWidth;
     return {
       year,
-      x: (year / yearsToRetirement) * plotWidth,
+      x,
       // 세로 구분선/눈금은 정수 좌표라야 안티앨리어싱 없이 선명하게 그려짐(곡선용 x와는 별도로 반올림).
-      xRounded: Math.round((year / yearsToRetirement) * plotWidth),
+      xRounded: Math.round(x),
       y: plotHeight - (value / axisMaxValue) * plotHeight,
     };
   });
-  const pathData = points.map((point, index) => `${index === 0 ? 'M' : 'L'}${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(' ');
+  const pathData = sampledPoints
+    .map((point, index) => `${index === 0 ? 'M' : 'L'}${point.x.toFixed(1)},${point.y.toFixed(1)}`)
+    .join(' ');
   const yAxisTicks = [4, 3, 2, 1, 0].map((multiplier) => multiplier * axisStepInEok);
   // 가로 구분선/눈금도 정수 좌표라야 선명하게 그려짐.
   const yPos = (index: number) => Math.round((index / 4) * plotHeight);
@@ -983,7 +818,7 @@ function FutureAssetChart({ currentTotal, yearsToRetirement }: { currentTotal: n
               strokeDasharray="2 2"
             />
           ))}
-          {points.slice(1).map((point) => (
+          {sampledPoints.slice(1).map((point) => (
             <line
               key={`v-${point.year}`}
               x1={point.xRounded}
@@ -1020,7 +855,7 @@ function FutureAssetChart({ currentTotal, yearsToRetirement }: { currentTotal: n
               shapeRendering="crispEdges"
             />
           ))}
-          {points.map((point) => (
+          {sampledPoints.map((point) => (
             <line
               key={`xtick-${point.year}`}
               x1={point.xRounded}
@@ -1035,8 +870,8 @@ function FutureAssetChart({ currentTotal, yearsToRetirement }: { currentTotal: n
           <path d={pathData} fill="none" stroke="#1FAB6A" strokeWidth="2" />
         </svg>
         <div className="mt-1 flex justify-between text-[9px] text-[#9CA3AF]">
-          {points.map((point) => (
-            <span key={point.year}>{CURRENT_AGE + point.year}세</span>
+          {sampledPoints.map((point) => (
+            <span key={point.year}>{startAge + point.year}세</span>
           ))}
         </div>
       </div>
@@ -1044,8 +879,9 @@ function FutureAssetChart({ currentTotal, yearsToRetirement }: { currentTotal: n
   );
 }
 
-// 아래 3개 섹션은 백엔드 /api/report(외부 AI 리포트 생성 서비스 프록시)를 호출해서 채움.
-// 그 서비스가 꺼져있어 호출이 실패하면 안정추구형 2등급 페르소나 기준 고정 문구로 폴백(데모 범위).
+// 아래 3개 섹션은 백엔드 /api/retirement-report 응답의 aiReport 필드(내부적으로 /api/report → 외부 AI
+// 리포트 생성 서비스 프록시를 호출)로 채움. 그 서비스가 꺼져있어 호출이 실패하면 retirementReport 전체가
+// null로 남으므로, 이 경우 안정추구형 2등급 페르소나 기준 고정 문구로 폴백(데모 범위).
 function AiSummarySection({ totalComment }: { totalComment?: string }) {
   return (
     <Section
