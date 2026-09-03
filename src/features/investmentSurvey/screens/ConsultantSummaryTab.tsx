@@ -30,16 +30,15 @@ interface ConsultantSummaryTabProps {
 // 부족 자금 계산에 적용하는 물가상승률 가정(정의서 S4-08 이슈#7 확정: 91만원×12개월×20년×(1.025)^36년 방식, 기획팀 검증 완료).
 const INFLATION_RATE = 0.025;
 
-// 투자성향 점수 5개 막대의 카테고리 매핑. 서버는 총점만 주기 때문에,
-// 문항 카테고리+선택한 보기 순서(order == 배점)로 클라이언트에서 직접 계산함.
-// %로 바꾸는 공식(선택값/만점)이 정의서에 없어서 임시로 넣은 값 — 기획 확인 필요.
-const SCORE_BAR_CATEGORIES: { category: string; label: string; color: string }[] = [
-  { category: '투자 경험', label: '투자 경험', color: '#E85D4A' },
-  { category: '손실 감내(변동성)', label: '손실 감내도', color: '#7C3AED' },
-  { category: '투자 기간', label: '투자 기간', color: '#EA8C00' },
-  { category: '수익 추구 성향', label: '수익 추구도', color: '#2A78D6' },
-  { category: '소득 안정성', label: '소득 안정성', color: '#1FAB6A' },
-];
+// 투자성향 점수 5개 막대 색상 — 값 자체는 백엔드가 등급별 확정값으로 내려주는 profile.categoryScores를
+// 그대로 쓰고, 라벨별 색상만 여기서 매핑함(백엔드 라벨 문자열과 정확히 일치해야 함).
+const SCORE_BAR_COLORS: Record<string, string> = {
+  '투자 경험': '#E85D4A',
+  '손실 감내도': '#7C3AED',
+  '투자 기간': '#EA8C00',
+  '수익 추구도': '#2A78D6',
+  '소득 안정성': '#1FAB6A',
+};
 
 // 미래 자산 시뮬레이션 3개 시나리오 박스 색상(현재 유지/+20만/+40만 순서, Figma 확인값).
 const SCENARIO_COLORS = ['#9CA3AF', '#2196F3', '#1FAB6A'];
@@ -48,7 +47,7 @@ function formatEok(won: number) {
   return `${(won / 100_000_000).toFixed(1)}억`;
 }
 
-export function ConsultantSummaryTab({ profile, questions, answers, connected, initialReport }: ConsultantSummaryTabProps) {
+export function ConsultantSummaryTab({ profile, answers, connected, initialReport }: ConsultantSummaryTabProps) {
   const items = useConnectionStore((state) => state.items);
   const [memo, setMemo] = useState('');
   const [memoSavedAt, setMemoSavedAt] = useState<Date | null>(null);
@@ -107,14 +106,11 @@ export function ConsultantSummaryTab({ profile, questions, answers, connected, i
   // 은퇴 후 20년(65~85세)치 생활비, 할인 없이 단순 합산 — 정의서 S4-08 이슈#7 확정 방식.
   const goalTotalShortfallNeeded = goalInflatedMonthlyShortfall * 12 * PENSION_PAYOUT_YEARS;
 
-  const scoreBars = SCORE_BAR_CATEGORIES.map(({ category, label, color }) => {
-    const question = questions.find((q) => q.category === category);
-    if (!question) return { label, percent: 0, color };
-    const selectedOrder = answers[question.id] ?? 0;
-    const maxOrder = Math.max(...question.options.map((option) => option.order));
-    const percent = maxOrder === 0 ? 0 : Math.round((selectedOrder / maxOrder) * 100);
-    return { label, percent, color };
-  });
+  const scoreBars = profile.categoryScores.map(({ label, percent }) => ({
+    label,
+    percent,
+    color: SCORE_BAR_COLORS[label] ?? '#9CA3AF',
+  }));
 
   // 미래 자산 시뮬레이션은 백엔드 /api/retirement-report의 futureAssetSimulation.points(currentAge~65세,
   // 1년 단위)를 그대로 사용 — 로컬 복리 계산은 더 이상 하지 않음. 마지막 포인트(65세)가 3개 시나리오 카드 값.
