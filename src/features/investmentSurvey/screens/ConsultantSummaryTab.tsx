@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 import { AiAvatarIcon, AlertCircleIcon, BankIcon, DownloadIcon, HomeIcon, ShareIcon } from '../components/icons';
 import type { PortfolioRecommendationResult, RetirementReportResult } from '../api/retirementReportApi';
 import { useConnectionStore } from '../../mydata/stores/connectionStore';
@@ -58,6 +60,7 @@ export function ConsultantSummaryTab({ profile, questions, answers, connected, i
   const [draftGoalManwon, setDraftGoalManwon] = useState(TARGET_MONTHLY_LIVING_COST / 10_000);
   const [draftRetirementAge, setDraftRetirementAge] = useState(65);
   const connectedMydata = getConnectedMydata(items);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   // 절세효과/미래자산 시뮬레이션/추천 포트폴리오/AI 리포트를 각각 따로 호출하던 것을 백엔드
   // /api/retirement-report(효진 구현) 하나로 통합 — mydata 스냅샷+설문답변을 보내면 전부 계산해서 반환해줌.
@@ -123,9 +126,28 @@ export function ConsultantSummaryTab({ profile, questions, answers, connected, i
     { label: '+40만/월', futureValue: lastFutureAssetPoint?.plus40Amount ?? 0 },
   ];
 
+  async function handleDownloadPdf() {
+    if (!contentRef.current) return;
+    // 툴바 버튼(PDF 저장/공유/처음으로)은 리포트 내용이 아니라 화면 조작용이라 PDF에는 안 실음.
+    const canvas = await html2canvas(contentRef.current, {
+      backgroundColor: '#FAFAF7',
+      scale: 2,
+      useCORS: true,
+      ignoreElements: (element) => element.classList.contains('pdf-ignore'),
+    });
+    const imageData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF({
+      orientation: canvas.width > canvas.height ? 'landscape' : 'portrait',
+      unit: 'px',
+      format: [canvas.width, canvas.height],
+    });
+    pdf.addImage(imageData, 'PNG', 0, 0, canvas.width, canvas.height);
+    pdf.save(`연금나침반_상담리포트_${PERSONA.name}.pdf`);
+  }
+
   return (
-    <div className="flex flex-1 flex-col gap-4 overflow-y-auto bg-[#FAFAF7] px-6 pt-6 pb-10">
-      <ReportHeader />
+    <div ref={contentRef} className="flex flex-1 flex-col gap-4 overflow-y-auto bg-[#FAFAF7] px-6 pt-6 pb-10">
+      <ReportHeader onDownloadPdf={handleDownloadPdf} />
 
       <Section title="고객 기본 정보">
         <InfoRow label="이름" value={PERSONA.name} />
@@ -287,25 +309,39 @@ export function ConsultantSummaryTab({ profile, questions, answers, connected, i
   );
 }
 
-function ReportHeader() {
+function ReportHeader({ onDownloadPdf }: { onDownloadPdf: () => Promise<void> }) {
   const navigate = useNavigate();
   const [toast, setToast] = useState<string | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   function showComingSoon(feature: string) {
     setToast(`${feature} 기능은 아직 준비 중이에요`);
     setTimeout(() => setToast(null), 2000);
   }
 
+  async function handlePdfClick() {
+    setIsDownloading(true);
+    try {
+      await onDownloadPdf();
+    } catch {
+      setToast('PDF 저장에 실패했어요. 잠시 후 다시 시도해주세요');
+      setTimeout(() => setToast(null), 2000);
+    } finally {
+      setIsDownloading(false);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-sm leading-[21px] font-bold whitespace-nowrap text-[#1A1A2E]">리포트 미리보기</h1>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="pdf-ignore flex shrink-0 items-center gap-2">
           <button
-            className="flex items-center gap-1.5 rounded-xl bg-[#2A78D6] px-4 py-2 text-[13px] font-bold whitespace-nowrap text-white"
-            onClick={() => showComingSoon('PDF 저장')}
+            className="flex items-center gap-1.5 rounded-xl bg-[#2A78D6] px-4 py-2 text-[13px] font-bold whitespace-nowrap text-white disabled:opacity-60"
+            onClick={handlePdfClick}
+            disabled={isDownloading}
           >
-            <DownloadIcon color="#FFFFFF" /> PDF 저장
+            <DownloadIcon color="#FFFFFF" /> {isDownloading ? '저장 중...' : 'PDF 저장'}
           </button>
           <button
             className="flex items-center gap-1.5 rounded-xl border border-black/8 bg-white px-4 py-2 text-[13px] font-bold whitespace-nowrap text-[#1A1A2E]"
