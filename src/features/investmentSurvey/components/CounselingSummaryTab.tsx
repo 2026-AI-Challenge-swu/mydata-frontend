@@ -67,7 +67,7 @@ export function CounselingSummaryTab({ profile, connected, retirementReport }: C
     ? (() => {
         const retirementMonthlyEstimate = calculateRetirementMonthlyPension({
           currentBalance: connectedMydata.retirementPension.balance,
-          annualContribution: connectedMydata.bankTransaction.monthlyIncome,
+          annualContribution: PERSONA.annualSalaryPreTax / 12,
           retirementAge,
         });
         const expectedMonthlyPension = connectedMydata.nationalPension.estimatedMonthlyAmount + retirementMonthlyEstimate;
