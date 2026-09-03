@@ -63,25 +63,6 @@ export interface InvestmentProfileResult {
   categoryScores: { label: string; percent: number }[];
 }
 
-export interface AssetPensionStatusResult {
-  totalAssets: number;
-  expectedMonthlyPension: number;
-  nationalPensionMonthly: number;
-  retirementPensionMonthlyEstimate: number;
-  personalPensionMonthlyEstimate: number;
-  personalPensionAccumAmt: number;
-  personalPensionEmployeeAmt: number;
-}
-
-export interface RetirementFundAnalysisResult {
-  targetLivingCost: number;
-  expectedMonthlyPension: number;
-  monthlyShortfall: number;
-  requiredAmountAtRetirement: number;
-  inflationRate: number;
-  retirementPayoutYears: number;
-}
-
 export interface PortfolioRecommendationResult {
   profileType: string;
   dcDefaultAllocationDescription: string;
@@ -105,8 +86,6 @@ export interface AiReportResult {
 
 export interface RetirementReportResult {
   investmentProfile: InvestmentProfileResult;
-  assetPensionStatus: AssetPensionStatusResult;
-  retirementFundAnalysis: RetirementFundAnalysisResult;
   recommendedPortfolio: PortfolioRecommendationResult;
   futureAssetSimulation: FutureAssetSimulationResult;
   aiReport: AiReportResult;
