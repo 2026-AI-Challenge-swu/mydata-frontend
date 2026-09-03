@@ -19,6 +19,11 @@ export interface SurveyAnswer {
   selectedOrder: number;
 }
 
+export interface InvestmentProfileCategoryScore {
+  label: string;
+  percent: number;
+}
+
 export interface InvestmentProfile {
   totalScore: number;
   type: string;
@@ -30,4 +35,7 @@ export interface InvestmentProfile {
   cardBackground: string;
   badgeBackground: string;
   accentColor: string;
+  // 투자성향 점수 카드 5개 항목(투자 경험/손실 감내도/투자 기간/수익 추구도/소득 안정성) %.
+  // 등급별 확정값 — 백엔드(InvestmentProfileType enum)가 계산해서 내려줌, 클라이언트에서 재계산하지 않음.
+  categoryScores: InvestmentProfileCategoryScore[];
 }
