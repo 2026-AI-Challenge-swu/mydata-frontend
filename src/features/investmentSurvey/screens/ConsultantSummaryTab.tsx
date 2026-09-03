@@ -48,7 +48,7 @@ function formatEok(won: number) {
   return `${(won / 100_000_000).toFixed(1)}억`;
 }
 
-export function ConsultantSummaryTab({ profile, answers, connected, initialReport }: ConsultantSummaryTabProps) {
+export function ConsultantSummaryTab({ profile, questions, answers, connected, initialReport }: ConsultantSummaryTabProps) {
   const items = useConnectionStore((state) => state.items);
   const [memo, setMemo] = useState('');
   const [memoSavedAt, setMemoSavedAt] = useState<Date | null>(null);
@@ -113,6 +113,18 @@ export function ConsultantSummaryTab({ profile, answers, connected, initialRepor
     color: SCORE_BAR_COLORS[label] ?? '#9CA3AF',
   }));
 
+  // "투자 경험"은 별도 채널이 필요 없음 — 설문 1번 문항(category: "투자 경험")에서 이미 물어본 답변을
+  // 그대로 씀(2026-09-03: PERSONA.investmentExperienceLabel이라는 무관한 고정 문구("1~3년")를 대신
+  // 쓰고 있던 걸 발견해서 수정 — 애초에 이 문항은 "투자 연차"가 아니라 "가장 과감했던 투자 상품"을
+  // 물어보는 문항이라 "1~3년" 같은 연차 표현 자체도 문항 의도와 안 맞았음).
+  const investmentExperienceQuestion = questions.find((question) => question.category === '투자 경험');
+  const investmentExperienceOption = investmentExperienceQuestion?.options.find(
+    (option) => option.order === answers[investmentExperienceQuestion.id]
+  );
+  const investmentExperienceLabel = investmentExperienceOption
+    ? investmentExperienceOption.text.replace(/^\S+\s*/, '')
+    : '응답 없음';
+
   // 미래 자산 시뮬레이션은 백엔드 /api/retirement-report의 futureAssetSimulation.points(currentAge~65세,
   // 1년 단위)를 그대로 사용 — 로컬 복리 계산은 더 이상 하지 않음. 마지막 포인트(65세)가 3개 시나리오 카드 값.
   const futureAssetPoints = retirementReport?.futureAssetSimulation.points ?? [];
@@ -151,7 +163,7 @@ export function ConsultantSummaryTab({ profile, answers, connected, initialRepor
         <InfoRow label="나이" value={`만 ${CURRENT_AGE}세 (${PERSONA.birthYear}년생)`} />
         <InfoRow label="연봉(세전)" value={formatManwon(PERSONA.annualSalaryPreTax)} />
         <InfoRow label="월급(세후)" value={formatManwon(connectedMydata.bankTransaction.monthlyIncome)} />
-        <InfoRow label="투자 경험" value={PERSONA.investmentExperienceLabel} />
+        <InfoRow label="투자 경험" value={investmentExperienceLabel} />
         <InfoRow label="위험 허용도" value={`${profile.officialName} ${profile.grade}등급`} />
         <JobRow
           job={job}
