@@ -11,7 +11,8 @@ export const PERSONA = {
   birthYear: 1997,
   annualSalaryPreTax: 48_000_000, // 연봉(세전). bankTransaction은 세후 월급만 제공해서 이 값은 정의서 기준 그대로 하드코딩.
   job: '직장인 (IT·기획)',
-  investmentExperienceLabel: '1~3년',
+  // 투자 경험은 별도 상수가 없음 — 설문 1번 문항(category: "투자 경험") 답변에서 직접 파생해서 씀
+  // (ConsultantSummaryTab.tsx 참고, 2026-09-03 수정).
   // 추천 포트폴리오 배분표가 성별별로 갈리는데 마이데이터/설문에 성별 필드가 없어 이름(김민준)으로 추정한 상수값.
   gender: '남' as const,
   // 세액공제는 "올해 신규 납입액" 기준으로 계산되는 값이라, mock의 employee_amt(430만원, IRP 개설 이후
