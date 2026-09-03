@@ -19,14 +19,18 @@ export interface RetirementPensionData {
   type: 'DC';
   balance: number; // 적립금 잔액(원)
   evaluationAmount: number; // 평가금액(원)
+  issueDate: string; // 가입일(YYYY-MM-DD) — /api/retirement-report 연동용(화면엔 노출 안 함)
 }
 
 export interface PersonalPensionAccount {
   accountType: 'IRP' | 'PENSION_SAVINGS';
   productName: string;
   balance: number;
+  accumAmt: number; // 누적 납입액(원) — /api/retirement-report 연동용(화면엔 노출 안 함)
+  employerAmt: number; // 회사 부담금(원) — /api/retirement-report 연동용(화면엔 노출 안 함)
   employeeContribution: number; // 본인부담금 누적(원) — 절세효과 분석 API 호출용
   issueDate: string; // 계좌 개설일(YYYY-MM-DD)
+  rcvStartDate: string; // 연금 수령 개시 예정일(YYYY-MM-DD) — /api/retirement-report 연동용(화면엔 노출 안 함)
 }
 
 export interface PersonalPensionData {

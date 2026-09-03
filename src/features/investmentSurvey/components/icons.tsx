@@ -231,3 +231,21 @@ export function AlertCircleIcon({ color = '#FF8904' }: { color?: string }) {
   );
 }
 
+// "더 자세한 리포트 보기" 버튼 아이콘 (Figma 원본 16x16, 문서+접힌 모서리 모양)
+export function ReportIcon({ color = '#FFFFFF' }: { color?: string }) {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" className="h-4 w-4 shrink-0" aria-hidden="true">
+      <path
+        d="M9.33333 1.33333H4C3.64638 1.33333 3.30724 1.47381 3.05719 1.72386C2.80714 1.97391 2.66667 2.31304 2.66667 2.66667V13.3333C2.66667 13.687 2.80714 14.0261 3.05719 14.2761C3.30724 14.5262 3.64638 14.6667 4 14.6667H12C12.3536 14.6667 12.6928 14.5262 12.9428 14.2761C13.1929 14.0261 13.3333 13.687 13.3333 13.3333V5.33333L9.33333 1.33333Z"
+        stroke={color}
+        strokeWidth="1.33333"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="M9.33333 1.33333V5.33333H13.3333" stroke={color} strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M5.33333 8.66667H10.6667" stroke={color} strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M5.33333 11.3333H8.66667" stroke={color} strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
