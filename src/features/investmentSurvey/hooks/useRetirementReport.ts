@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ConnectedMydata } from '../../mydata/utils/assetSummary';
 import { generateRetirementReport, type RetirementReportResult } from '../api/retirementReportApi';
-import { CURRENT_AGE } from '../../mydata/utils/assetSummary';
+import { getCurrentAge } from '../../mydata/utils/assetSummary';
 
 // 이름/생년월일/성별/연봉/직업은 이제 마이데이터 연동(identity/income/employment)으로 받아오므로
 // 여기 상수로 안 둠(2026-09-03: PERSONA에서 분리). 아래 값만 마이데이터/설문 어디에서도 안 내려오는
@@ -73,7 +73,7 @@ export function useRetirementReport({
 
     generateRetirementReport({
       surveyAnswers,
-      currentAge: CURRENT_AGE,
+      currentAge: getCurrentAge(connectedMydata.identity.birthYear),
       gender: connectedMydata.identity.gender,
       targetLivingCost,
       mydata: {

@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useConnectionStore } from '../stores/connectionStore';
-import { calculateRetirementMonthlyPension } from '../utils/assetSummary';
+import { calculateRetirementMonthlyPension, getCurrentAge } from '../utils/assetSummary';
 
 // 연금저축·IRP 세액공제 한도(2023년 개정 세법 기준). 합산 연 900만원까지 인정, 총급여 5,500만원 이하(종합소득 4,500만원 이하) 구간 공제율 16.5%,
 // 초과 구간은 13.2%. 세전 연봉은 이제 소득 정보 연동(income.annualGrossSalary)으로 실제 값을 알 수 있어서 그 값으로 구간을 그대로 판별함
@@ -159,6 +159,7 @@ export function AssetOverviewScreen() {
   const retirementMonthlyEstimate = calculateRetirementMonthlyPension({
     currentBalance: retirementPension.balance,
     annualContribution: income.annualGrossSalary / 12,
+    currentAge: getCurrentAge(identity.birthYear),
     retirementAge: nationalPension.paymentStartAge,
   });
   // 예상 월 연금 = 국민연금(자동 월액) + 퇴직연금(연금현가공식 환산). 정의서 S1-05 기준

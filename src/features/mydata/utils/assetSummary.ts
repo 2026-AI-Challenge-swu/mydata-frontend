@@ -14,8 +14,13 @@ import type {
 // 가정: 은퇴까지 매년 3% 복리로 자산이 불어나고, 은퇴 후 20년(240개월)에 걸쳐 연금현가공식으로 나눠 받음.
 export const ASSUMED_ANNUAL_RETURN_RATE = 0.03;
 export const PENSION_PAYOUT_YEARS = 20;
-// 페르소나 기준표(만 29세) — 마이데이터로 연동되는 값이 아니라서 상수로 둠. 은퇴 나이는 국민연금 수급개시연령(paymentStartAge)을 그대로 재사용.
-export const CURRENT_AGE = 29;
+
+// 만 나이 계산 — 생일이 지났는지는 IdentityData에 월/일이 없어서 반영 못 하고, 연도 차이로만 근사함
+// (기존에 "만 29세"를 페르소나 상수로 하드코딩해뒀었는데, 2026-09-03 본인 확인 연동 후에도
+// identity.birthYear와 연결 안 된 채로 남아있던 걸 발견 → identity.birthYear에서 바로 계산하도록 수정).
+export function getCurrentAge(birthYear: number): number {
+  return new Date().getFullYear() - birthYear;
+}
 
 // 현재 잔액(currentBalance)을 연 복리로 은퇴 시점까지 불리고,
 // 연간 납입액(annualContribution)은 매달 나눠 적립하며 월복리로 불린 뒤,
@@ -23,13 +28,15 @@ export const CURRENT_AGE = 29;
 export function calculateRetirementMonthlyPension({
   currentBalance,
   annualContribution,
+  currentAge,
   retirementAge,
 }: {
   currentBalance: number;
   annualContribution: number;
+  currentAge: number;
   retirementAge: number;
 }) {
-  const yearsToRetirement = retirementAge - CURRENT_AGE;
+  const yearsToRetirement = retirementAge - currentAge;
   const monthlyRate = ASSUMED_ANNUAL_RETURN_RATE / 12;
 
   const futureValueOfBalance =
@@ -93,6 +100,7 @@ export function getConnectedMydata(items: ConnectionItems): ConnectedMydata | nu
 
 // AssetOverviewScreen과 상담용 요약 리포트가 공통으로 쓰는 총자산/예상월연금 등 파생값 계산.
 export function computeAssetSummary({
+  identity,
   income,
   nationalPension,
   retirementPension,
@@ -120,6 +128,7 @@ export function computeAssetSummary({
   const retirementMonthlyEstimate = calculateRetirementMonthlyPension({
     currentBalance: retirementPension.balance,
     annualContribution: income.annualGrossSalary / 12,
+    currentAge: getCurrentAge(identity.birthYear),
     retirementAge: nationalPension.paymentStartAge,
   });
   // 예상 월 연금 = 국민연금(자동 월액) + 퇴직연금(연금현가공식 환산). 정의서 S1-05 기준

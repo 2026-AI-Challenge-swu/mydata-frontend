@@ -7,11 +7,11 @@ import { LoadingSpinner } from './LoadingSpinner';
 import { TARGET_MONTHLY_LIVING_COST } from '../hooks/useRetirementReport';
 import { useConnectionStore } from '../../mydata/stores/connectionStore';
 import {
-  CURRENT_AGE,
   PENSION_PAYOUT_YEARS,
   calculateRetirementMonthlyPension,
   formatManwon,
   getConnectedMydata,
+  getCurrentAge,
 } from '../../mydata/utils/assetSummary';
 
 interface CounselingSummaryTabProps {
@@ -62,12 +62,13 @@ export function CounselingSummaryTab({ profile, connected, retirementReport }: C
 
   // "노후 부족 자금 분석"은 AI 리포트가 아니라 마이데이터로 프론트에서 바로 계산하는 값이라, retirementReport를
   // 기다릴 필요 없이 connectedMydata만 있으면 항상 보여줌 — ConsultantSummaryTab의 goal* 계산과 동일한 공식.
-  const yearsToRetirement = retirementAge - CURRENT_AGE;
   const fundAnalysis = connectedMydata
     ? (() => {
+        const yearsToRetirement = retirementAge - getCurrentAge(connectedMydata.identity.birthYear);
         const retirementMonthlyEstimate = calculateRetirementMonthlyPension({
           currentBalance: connectedMydata.retirementPension.balance,
           annualContribution: connectedMydata.income.annualGrossSalary / 12,
+          currentAge: getCurrentAge(connectedMydata.identity.birthYear),
           retirementAge,
         });
         const expectedMonthlyPension = connectedMydata.nationalPension.estimatedMonthlyAmount + retirementMonthlyEstimate;

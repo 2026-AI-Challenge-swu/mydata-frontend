@@ -7,11 +7,11 @@ import type { PortfolioRecommendationResult, RetirementReportResult } from '../a
 import { useConnectionStore } from '../../mydata/stores/connectionStore';
 import {
   PENSION_PAYOUT_YEARS,
-  CURRENT_AGE,
   calculateRetirementMonthlyPension,
   computeAssetSummary,
   formatManwon,
   getConnectedMydata,
+  getCurrentAge,
 } from '../../mydata/utils/assetSummary';
 import type { InvestmentProfile, SurveyQuestion } from '../types/survey';
 import { TARGET_MONTHLY_LIVING_COST, useRetirementReport } from '../hooks/useRetirementReport';
@@ -91,13 +91,15 @@ export function ConsultantSummaryTab({ profile, questions, answers, connected, i
 
   const { identity, income, nationalPension, retirementPension } = connectedMydata;
   const summary = computeAssetSummary(connectedMydata);
+  const currentAge = getCurrentAge(identity.birthYear);
 
   // "노후 부족 자금 분석" 카드의 수정 팝업(목표생활비/희망은퇴나이)에 따른 what-if 재계산.
   // 다른 섹션(자산 현황, 미래 자산 시뮬레이션 등)의 기준값에는 영향을 주지 않도록 이 카드 전용 변수로 분리.
-  const goalYearsToRetirement = retirementAge - CURRENT_AGE;
+  const goalYearsToRetirement = retirementAge - currentAge;
   const goalRetirementMonthlyEstimate = calculateRetirementMonthlyPension({
     currentBalance: retirementPension.balance,
     annualContribution: income.annualGrossSalary / 12,
+    currentAge,
     retirementAge,
   });
   const goalExpectedMonthlyPension = nationalPension.estimatedMonthlyAmount + goalRetirementMonthlyEstimate;
@@ -160,7 +162,7 @@ export function ConsultantSummaryTab({ profile, questions, answers, connected, i
 
       <Section title="고객 기본 정보">
         <InfoRow label="이름" value={identity.name} />
-        <InfoRow label="나이" value={`만 ${CURRENT_AGE}세 (${identity.birthYear}년생)`} />
+        <InfoRow label="나이" value={`만 ${currentAge}세 (${identity.birthYear}년생)`} />
         <InfoRow label="연봉(세전)" value={formatManwon(income.annualGrossSalary)} />
         <InfoRow label="월급(세후)" value={formatManwon(connectedMydata.bankTransaction.monthlyIncome)} />
         <InfoRow label="투자 경험" value={investmentExperienceLabel} />
