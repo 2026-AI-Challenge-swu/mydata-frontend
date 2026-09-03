@@ -1,56 +1,30 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AiAvatarIcon, AlertCircleIcon, BankIcon, DownloadIcon, HomeIcon, ShareIcon } from '../components/icons';
-import {
-  generateRetirementReport,
-  type PortfolioRecommendationResult,
-  type RetirementReportResult,
-} from '../api/retirementReportApi';
+import type { PortfolioRecommendationResult, RetirementReportResult } from '../api/retirementReportApi';
 import { useConnectionStore } from '../../mydata/stores/connectionStore';
 import {
-  CURRENT_AGE,
   PENSION_PAYOUT_YEARS,
+  CURRENT_AGE,
   calculateRetirementMonthlyPension,
   computeAssetSummary,
   formatManwon,
   getConnectedMydata,
 } from '../../mydata/utils/assetSummary';
 import type { InvestmentProfile, SurveyQuestion } from '../types/survey';
+import { PERSONA, TARGET_MONTHLY_LIVING_COST, useRetirementReport } from '../hooks/useRetirementReport';
+import { GoalEditModal } from '../components/GoalEditModal';
 
 interface ConsultantSummaryTabProps {
   profile: InvestmentProfile;
   questions: SurveyQuestion[];
   answers: Record<string, number>;
   connected: boolean;
+  // "내 결과" 화면(SurveyResultScreen)에서 이미 만들어둔 리포트가 있으면 이걸로 넘겨받음 — 있으면
+  // useRetirementReport가 같은 조건으로 다시 호출하지 않고 그대로 재사용함(화면 간 데이터 일치 보장).
+  initialReport?: RetirementReportResult | null;
 }
 
-// 페르소나 기준표(김민준, 29세) — 마이데이터로 연동되지 않는 값들이라 상수로 둠.
-const PERSONA = {
-  name: '김민준',
-  birthYear: 1997,
-  annualSalaryPreTax: 48_000_000, // 연봉(세전). bankTransaction은 세후 월급만 제공해서 이 값은 정의서 기준 그대로 하드코딩.
-  job: '직장인 (IT·기획)',
-  investmentExperienceLabel: '1~3년',
-  // 추천 포트폴리오 배분표가 성별별로 갈리는데 마이데이터/설문에 성별 필드가 없어 이름(김민준)으로 추정한 상수값.
-  gender: '남' as const,
-  // 정의서 확정표: "본인 납입액 0원, 데이터출처 퇴직연금사 연동 — 자동". mock의 employee_amt(430만원)는
-  // 이 확정값과 어긋나는 목데이터 쪽 오류라 판단, employee_amt 대신 이 확정 상수를 사용.
-  personalContributionBySelf: 0,
-};
-
-// 연금저축 계좌의 연간 납입액 추정치 — 정의서에 실제 값이 없어서, 이번에 백엔드에서 삭제된
-// "누적납입액÷가입연수" 방식을 그대로 재현한 임시 값. 정의서에 확정값이 생기면 이 함수 대신
-// 그 값을 써야 함(2026-09-02 기획 확인 보류). 김민준 페르소나는 연금저축 계좌가 없어 미사용.
-function estimateAnnualContribution(accumAmt: number, issueDate: string): number {
-  const elapsedYears = Math.max(
-    1,
-    new Date().getFullYear() - new Date(issueDate).getFullYear(),
-  );
-  return Math.round(accumAmt / elapsedYears);
-}
-
-// "목표 생활비"는 정의서에 국민연금연구원 통계 기본값으로 명시된 페르소나 상수값.
-const TARGET_MONTHLY_LIVING_COST = 2_500_000;
 // 부족 자금 계산에 적용하는 물가상승률 가정(정의서 S4-08 이슈#7 확정: 91만원×12개월×20년×(1.025)^36년 방식, 기획팀 검증 완료).
 const INFLATION_RATE = 0.025;
 
@@ -77,7 +51,7 @@ function formatManwonPrecise(won: number) {
   return `${(won / 10_000).toLocaleString('ko-KR', { maximumFractionDigits: 1 })}만원`;
 }
 
-export function ConsultantSummaryTab({ profile, questions, answers, connected }: ConsultantSummaryTabProps) {
+export function ConsultantSummaryTab({ profile, questions, answers, connected, initialReport }: ConsultantSummaryTabProps) {
   const items = useConnectionStore((state) => state.items);
   const [memo, setMemo] = useState('');
   const [memoSavedAt, setMemoSavedAt] = useState<Date | null>(null);
@@ -89,74 +63,18 @@ export function ConsultantSummaryTab({ profile, questions, answers, connected }:
   const [draftGoalManwon, setDraftGoalManwon] = useState(TARGET_MONTHLY_LIVING_COST / 10_000);
   const [draftRetirementAge, setDraftRetirementAge] = useState(65);
   const connectedMydata = getConnectedMydata(items);
-  const [retirementReport, setRetirementReport] = useState<RetirementReportResult | null>(null);
 
   // 절세효과/미래자산 시뮬레이션/추천 포트폴리오/AI 리포트를 각각 따로 호출하던 것을 백엔드
   // /api/retirement-report(효진 구현) 하나로 통합 — mydata 스냅샷+설문답변을 보내면 전부 계산해서 반환해줌.
-  // annualContribution(연간 납입액)은 세액공제 계산에만 쓰이는데, IRP는 정의서 확정값(0원,
-  // PERSONA.personalContributionBySelf)을 그대로 쓰고, 연금저축 계좌는 정의서에 값이 없어서
-  // 예전 백엔드 로직(누적납입액÷가입연수)을 estimateAnnualContribution()으로 임시 재현함 —
-  // 김민준 페르소나는 연금저축 계좌가 아예 없어서 지금은 이 분기가 실행되지 않음(정의서 확인 전까지 보류).
-  useEffect(() => {
-    if (!connectedMydata) return;
-
-    const surveyAnswers = Object.entries(answers).map(([questionId, selectedOrder]) => ({
-      questionId,
-      selectedOrder,
-    }));
-
-    generateRetirementReport({
-      surveyAnswers,
-      currentAge: CURRENT_AGE,
-      gender: PERSONA.gender === '남' ? 'MALE' : 'FEMALE',
-      targetLivingCost: goalLivingCost,
-      mydata: {
-        annualGrossSalary: PERSONA.annualSalaryPreTax,
-        nationalPension: {
-          estimatedMonthlyAmount: connectedMydata.nationalPension.estimatedMonthlyAmount,
-          paymentStartAge: connectedMydata.nationalPension.paymentStartAge,
-          contributionYears: connectedMydata.nationalPension.contributionYears,
-        },
-        retirementPension: {
-          balanceAmt: connectedMydata.retirementPension.balance,
-          evalAmt: connectedMydata.retirementPension.evaluationAmount,
-          issueDate: connectedMydata.retirementPension.issueDate,
-        },
-        personalPensionAccounts: connectedMydata.personalPension.accounts.map((account) => ({
-          accountType: account.accountType,
-          accumAmt: account.accumAmt,
-          evalAmt: account.balance,
-          employerAmt: account.employerAmt,
-          employeeAmt: account.employeeContribution,
-          issueDate: account.issueDate,
-          rcvStartDate: account.rcvStartDate,
-          annualContribution:
-            account.accountType === 'IRP'
-              ? PERSONA.personalContributionBySelf
-              : estimateAnnualContribution(account.accumAmt, account.issueDate),
-        })),
-        savingsInvestment: {
-          accounts: connectedMydata.savingsInvestment.accounts.map((account) => ({
-            prodName: account.productName,
-            balanceAmt: account.balance,
-          })),
-        },
-        bankTransaction: {
-          salaryAmt: connectedMydata.bankTransaction.monthlyIncome,
-          expenseAmt: connectedMydata.bankTransaction.monthlyExpense,
-        },
-      },
-    })
-      .then(setRetirementReport)
-      .catch(() => setRetirementReport(null));
-  }, [
-    connectedMydata?.retirementPension.balance,
-    connectedMydata?.personalPension.totalContribution,
-    connectedMydata?.savingsInvestment.totalBalance,
-    connectedMydata?.bankTransaction.monthlyIncome,
-    goalLivingCost,
+  // fetch 로직 자체는 useRetirementReport 훅으로 옮겨서 SurveyResultScreen과 공유함 — "내 결과" 화면에서
+  // 이미 만든 리포트(initialReport)가 있으면 여기서 똑같은 조건으로 다시 호출하지 않고 그대로 재사용해서,
+  // 두 화면에 보이는 AI 조언/할 일 내용이 어긋나지 않게 함.
+  const retirementReport = useRetirementReport({
     answers,
-  ]);
+    connectedMydata,
+    targetLivingCost: goalLivingCost,
+    initialReport,
+  });
 
   if (!connected) {
     return (
@@ -273,9 +191,7 @@ export function ConsultantSummaryTab({ profile, questions, answers, connected }:
             ✏️ 수정
           </button>
         </div>
-        <p className="text-[11px] leading-[16.5px] text-[#6B7280]">
-          20대 후반 평균 기준 · {retirementAge}세 은퇴 기준
-        </p>
+        <p className="text-[11px] leading-[16.5px] text-[#6B7280]">{retirementAge}세 은퇴 기준</p>
         <div className="mt-4 flex items-center justify-between gap-2">
           <div className="flex-1 rounded-xl bg-[#F0F0EC] py-2 text-center">
             <div className="text-[10px] leading-[15px] text-[#6B7280]">목표 생활비</div>
@@ -530,88 +446,6 @@ function JobRow({
         )}
       </div>
       <p className="mt-2 text-[10px] leading-[15px] text-[#6B7280]">직업을 알려주면 더 정확한 추천이 가능해요</p>
-    </div>
-  );
-}
-
-const RETIREMENT_AGE_MIN = 60;
-const RETIREMENT_AGE_MAX = 70;
-
-function GoalEditModal({
-  goalManwon,
-  retirementAge,
-  onChangeGoalManwon,
-  onChangeRetirementAge,
-  onCancel,
-  onApply,
-}: {
-  goalManwon: number;
-  retirementAge: number;
-  onChangeGoalManwon: (value: number) => void;
-  onChangeRetirementAge: (value: number) => void;
-  onCancel: () => void;
-  onApply: () => void;
-}) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6">
-      <div className="w-full max-w-sm rounded-2xl bg-white p-5">
-        <h3 className="text-sm leading-[21px] font-bold text-[#1A1A2E]">노후 부족 자금 분석</h3>
-
-        <label className="mt-4 block text-[12px] leading-[18px] font-bold text-[#1A1A2E]">
-          목표 생활비 (만원/월)
-        </label>
-        <p className="mt-1 text-[11px] leading-[16.5px] text-[#6B7280]">
-          당신 또래 평균은 {TARGET_MONTHLY_LIVING_COST / 10_000}만원이에요
-        </p>
-        <input
-          type="number"
-          inputMode="numeric"
-          autoFocus
-          value={goalManwon}
-          onChange={(e) => onChangeGoalManwon(Number(e.target.value))}
-          className="mt-2 w-full rounded-xl border border-black/10 px-3 py-2.5 text-[16px] leading-[24px] font-bold text-[#1A1A2E] outline-none focus:border-[#2A78D6]"
-        />
-
-        <label className="mt-4 block text-[12px] leading-[18px] font-bold text-[#1A1A2E]">
-          희망 은퇴 나이
-        </label>
-        <div className="mt-2 flex items-center justify-center gap-4">
-          <button
-            type="button"
-            onClick={() => onChangeRetirementAge(Math.max(RETIREMENT_AGE_MIN, retirementAge - 1))}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F0F0EC] text-xl font-bold text-[#1A1A2E]"
-          >
-            −
-          </button>
-          <span className="text-[24px] leading-[36px] font-extrabold text-[#2A78D6]">
-            {retirementAge}세
-          </span>
-          <button
-            type="button"
-            onClick={() => onChangeRetirementAge(Math.min(RETIREMENT_AGE_MAX, retirementAge + 1))}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F0F0EC] text-xl font-bold text-[#1A1A2E]"
-          >
-            +
-          </button>
-        </div>
-
-        <div className="mt-5 flex gap-2">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="flex-1 rounded-xl border border-black/8 bg-white py-2.5 text-[14px] leading-[21px] font-bold text-[#6B7280]"
-          >
-            취소
-          </button>
-          <button
-            type="button"
-            onClick={onApply}
-            className="flex-1 rounded-xl bg-[#2A78D6] py-2.5 text-[14px] leading-[21px] font-bold text-white"
-          >
-            적용하기
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

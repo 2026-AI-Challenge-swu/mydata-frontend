@@ -50,7 +50,7 @@ export function formatManwon(won: number) {
   return `${Math.round(won / 10_000).toLocaleString()}만원`;
 }
 
-interface ConnectedMydata {
+export interface ConnectedMydata {
   nationalPension: NationalPensionData;
   retirementPension: RetirementPensionData;
   personalPension: PersonalPensionData;
