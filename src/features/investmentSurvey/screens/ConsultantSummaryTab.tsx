@@ -754,10 +754,10 @@ function RoadmapSection({ roadMap }: { roadMap?: { id: number; time: string; tod
         {steps.map((step) => (
           <li key={step.id} className="relative flex items-start gap-2.5">
             <span className="h-4 w-4 shrink-0 rounded-full border-2 border-black/8 bg-white" aria-hidden="true" />
-            <p className="text-xs leading-[18px] text-[#1A1A2E]">
-              <span className="mr-1.5 text-[10px] leading-[15px] font-bold text-[#2A78D6]">{step.time}</span>
-              {step.todo}
-            </p>
+            <div>
+              <p className="text-[10px] leading-[15px] font-bold text-[#2A78D6]">{step.time}</p>
+              <p className="mt-1 text-xs leading-[18px] text-[#1A1A2E]">{step.todo}</p>
+            </div>
           </li>
         ))}
       </ol>
