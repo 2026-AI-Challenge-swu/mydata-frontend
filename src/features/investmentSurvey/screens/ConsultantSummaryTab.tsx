@@ -89,15 +89,15 @@ export function ConsultantSummaryTab({ profile, answers, connected, initialRepor
     return null;
   }
 
-  const { nationalPension, retirementPension, bankTransaction } = connectedMydata;
-  const summary = computeAssetSummary(connectedMydata);
+  const { nationalPension, retirementPension } = connectedMydata;
+  const summary = computeAssetSummary(connectedMydata, PERSONA.annualSalaryPreTax);
 
   // "노후 부족 자금 분석" 카드의 수정 팝업(목표생활비/희망은퇴나이)에 따른 what-if 재계산.
   // 다른 섹션(자산 현황, 미래 자산 시뮬레이션 등)의 기준값에는 영향을 주지 않도록 이 카드 전용 변수로 분리.
   const goalYearsToRetirement = retirementAge - CURRENT_AGE;
   const goalRetirementMonthlyEstimate = calculateRetirementMonthlyPension({
     currentBalance: retirementPension.balance,
-    annualContribution: bankTransaction.monthlyIncome,
+    annualContribution: PERSONA.annualSalaryPreTax / 12,
     retirementAge,
   });
   const goalExpectedMonthlyPension = nationalPension.estimatedMonthlyAmount + goalRetirementMonthlyEstimate;

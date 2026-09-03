@@ -1,11 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useConnectionStore } from '../stores/connectionStore';
-import { kimMinjunAge } from '../mocks/personas/kimMinjun';
-
-// 퇴직연금 DC 잔액을 월 수령액으로 환산하는 공식(S1-05 확정, 2026-08-26 기획팀 검토 완료).
-// 가정: 은퇴까지 매년 3% 복리로 자산이 불어나고, 은퇴 후 20년(240개월)에 걸쳐 연금현가공식으로 나눠 받음.
-const ASSUMED_ANNUAL_RETURN_RATE = 0.03;
-const PENSION_PAYOUT_YEARS = 20;
+import { PERSONA } from '../../investmentSurvey/hooks/useRetirementReport';
+import { calculateRetirementMonthlyPension } from '../utils/assetSummary';
 
 // 연금저축·IRP 세액공제 한도(2023년 개정 세법 기준). 합산 연 900만원까지 인정, 총급여 5,500만원 이하(종합소득 4,500만원 이하) 구간 공제율 16.5%.
 // 5,500만원 초과 구간은 13.2%로 낮아지지만, 김민준의 정확한 세전 소득 구간은 마이데이터로 확인 불가(은행 거래내역엔 세후 급여만 제공)해 낮은 구간을 가정.
@@ -13,40 +9,10 @@ const PENSION_TAX_DEDUCTION_LIMIT = 9_000_000;
 const PENSION_TAX_DEDUCTION_RATE = 0.165;
 const MAX_PENSION_TAX_DEDUCTION = PENSION_TAX_DEDUCTION_LIMIT * PENSION_TAX_DEDUCTION_RATE;
 
-// 현재 잔액(currentBalance)을 연 복리로 은퇴 시점까지 불리고,
-// 연간 납입액(annualContribution)은 매달 나눠 적립하며 월복리로 불린 뒤,
-// 두 미래가치를 합쳐서 은퇴 후 20년간 매달 받는다고 가정하고 연금현가공식으로 월 수령액을 역산한다.
-function calculateRetirementMonthlyPension({
-  currentBalance,
-  annualContribution,
-  retirementAge,
-}: {
-  currentBalance: number;
-  annualContribution: number;
-  retirementAge: number;
-}) {
-  const yearsToRetirement = retirementAge - kimMinjunAge;
-  const monthlyRate = ASSUMED_ANNUAL_RETURN_RATE / 12;
-
-  // 1) 기존 잔액의 미래가치: 연 단위 복리
-  const futureValueOfBalance =
-    currentBalance * Math.pow(1 + ASSUMED_ANNUAL_RETURN_RATE, yearsToRetirement);
-
-  // 2) 향후 납입액의 미래가치: 매달 (연납입액/12)씩 적립, 월복리로 성장(연금의 미래가치 공식)
-  const monthlyContribution = annualContribution / 12;
-  const monthsToRetirement = yearsToRetirement * 12;
-  const futureValueOfContributions =
-    monthlyContribution *
-    ((Math.pow(1 + monthlyRate, monthsToRetirement) - 1) / monthlyRate);
-
-  const totalFutureValue = futureValueOfBalance + futureValueOfContributions;
-
-  // 3) 은퇴 후 20년(240개월) 동안 매달 동일 금액을 받는다고 가정한 연금현가공식으로 월 지급액 역산
-  const payoutMonths = PENSION_PAYOUT_YEARS * 12;
-  const monthlyPayoutFactor = monthlyRate / (1 - Math.pow(1 + monthlyRate, -payoutMonths));
-
-  return Math.round(totalFutureValue * monthlyPayoutFactor);
-}
+// 퇴직연금 월 환산 공식(S1-05 확정, 2026-08-26 기획팀 검토 완료)은 assetSummary.ts의 것과 완전히 동일한
+// 로직이 이 파일에 따로 복붙돼있었음(2026-09-03 발견) — kimMinjunAge/CURRENT_AGE처럼 값은 같지만 출처가
+// 다른 상수를 각자 써서 나중에 하나만 바뀌면 두 화면 계산이 어긋날 위험이 있었음. assetSummary.ts의
+// export를 그대로 가져다 쓰는 걸로 통합.
 
 function formatManwon(won: number) {
   return `${Math.round(won / 10_000).toLocaleString()}만원`;
@@ -181,10 +147,12 @@ export function AssetOverviewScreen() {
 
   // 총자산 = 예적금+주식/ETF(자동) + 퇴직연금 적립금 + 개인연금 평가금액. 국민연금은 자산이 아니라 월수령액이라 제외(정의서 S1-04 비고)
   const totalAssets = savingsInvestment.totalBalance + retirementPension.balance + personalPensionBalance;
-  // 퇴직연금 월 환산액: 연 납입액은 월급(세후)을 그대로 사용(마이데이터로 연동되는 값 기준)
+  // 퇴직연금 월 환산액: DC형은 법정 최소 "연봉의 1/12"을 회사가 매년 적립하는 제도라, 은행 거래내역상
+  // 월급(세후)이 아니라 연봉(세전)을 12로 나눈 값을 연간 납입액으로 사용(2026-09-03 수정 — 예전엔
+  // bankTransaction.monthlyIncome을 그대로 썼는데, 세후 실수령액은 DC 납입 기준과 무관한 값이라 부정확했음).
   const retirementMonthlyEstimate = calculateRetirementMonthlyPension({
     currentBalance: retirementPension.balance,
-    annualContribution: bankTransaction.monthlyIncome,
+    annualContribution: PERSONA.annualSalaryPreTax / 12,
     retirementAge: nationalPension.paymentStartAge,
   });
   // 예상 월 연금 = 국민연금(자동 월액) + 퇴직연금(연금현가공식 환산). 정의서 S1-05 기준

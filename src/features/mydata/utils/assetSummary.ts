@@ -80,13 +80,14 @@ export function getConnectedMydata(items: ConnectionItems): ConnectedMydata | nu
 }
 
 // AssetOverviewScreen과 상담용 요약 리포트가 공통으로 쓰는 총자산/예상월연금 등 파생값 계산.
-export function computeAssetSummary({
-  nationalPension,
-  retirementPension,
-  personalPension,
-  savingsInvestment,
-  bankTransaction,
-}: ConnectedMydata) {
+// annualSalaryPreTax(세전 연봉)는 마이데이터 응답이 아니라 페르소나 상수라 이 유틸(assetSummary.ts)이
+// 직접 참조하지 않고, 호출하는 쪽(PERSONA를 이미 알고 있는 화면)에서 넘겨받음 — assetSummary.ts는
+// investmentSurvey/hooks/useRetirementReport.ts가 이미 이 파일(CURRENT_AGE)을 가져다 쓰고 있어서,
+// 반대 방향으로 PERSONA를 가져오면 순환 참조(circular import)가 생기기 때문.
+export function computeAssetSummary(
+  { nationalPension, retirementPension, personalPension, savingsInvestment, bankTransaction }: ConnectedMydata,
+  annualSalaryPreTax: number,
+) {
   const personalPensionBalance = personalPension.accounts.reduce((sum, account) => sum + account.balance, 0);
   const personalPensionEmployeeContribution = personalPension.accounts.reduce(
     (sum, account) => sum + account.employeeContribution,
@@ -101,10 +102,12 @@ export function computeAssetSummary({
 
   // 총자산 = 예적금+주식/ETF(자동) + 퇴직연금 적립금 + 개인연금 평가금액. 국민연금은 자산이 아니라 월수령액이라 제외(정의서 S1-04 비고)
   const totalAssets = savingsInvestment.totalBalance + retirementPension.balance + personalPensionBalance;
-  // 퇴직연금 월 환산액: 연 납입액은 월급(세후)을 그대로 사용(마이데이터로 연동되는 값 기준)
+  // 퇴직연금 월 환산액: DC형은 법정 최소 "연봉의 1/12"을 회사가 매년 적립하는 제도라, 은행 거래내역상
+  // 월급(세후)이 아니라 연봉(세전)을 12로 나눈 값을 연간 납입액으로 사용(2026-09-03 수정 — 예전엔
+  // bankTransaction.monthlyIncome을 그대로 썼는데, 세후 실수령액은 DC 납입 기준과 무관한 값이라 부정확했음).
   const retirementMonthlyEstimate = calculateRetirementMonthlyPension({
     currentBalance: retirementPension.balance,
-    annualContribution: bankTransaction.monthlyIncome,
+    annualContribution: annualSalaryPreTax / 12,
     retirementAge: nationalPension.paymentStartAge,
   });
   // 예상 월 연금 = 국민연금(자동 월액) + 퇴직연금(연금현가공식 환산). 정의서 S1-05 기준
