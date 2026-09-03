@@ -93,7 +93,7 @@ export function EntryScreen() {
           </li>
           <li className="flex items-center gap-3 text-sm leading-[21px] text-[#1A1A2E]">
             <span className="text-lg">💡</span>
-            절세 효과와 미래 자산 시뮬레이션
+            미래 자산 시뮬레이션
           </li>
         </ul>
       </div>

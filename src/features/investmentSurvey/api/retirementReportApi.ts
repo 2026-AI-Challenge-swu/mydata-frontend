@@ -96,18 +96,6 @@ export interface FutureAssetSimulationResult {
   points: { age: number; maintainAmount: number; plus20Amount: number; plus40Amount: number }[];
 }
 
-export interface TaxSavingAnalysisResult {
-  totalSalary: number;
-  deductionRate: number;
-  currentPensionSavingsAnnualContribution: number;
-  currentPersonalPensionAnnualContribution: number;
-  currentEligibleAmount: number;
-  currentDeductionAmount: number;
-  recommendedEligibleAmount: number;
-  recommendedDeductionAmount: number;
-  increaseAmount: number;
-}
-
 // 백엔드 ReportResponse가 @JsonNaming(SnakeCaseStrategy)라 이 필드만 스네이크케이스로 내려옴.
 export interface AiReportResult {
   total_comment: string;
@@ -121,7 +109,6 @@ export interface RetirementReportResult {
   retirementFundAnalysis: RetirementFundAnalysisResult;
   recommendedPortfolio: PortfolioRecommendationResult;
   futureAssetSimulation: FutureAssetSimulationResult;
-  taxSavingAnalysis: TaxSavingAnalysisResult;
   aiReport: AiReportResult;
 }
 
