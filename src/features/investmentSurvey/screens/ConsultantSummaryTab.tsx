@@ -16,6 +16,7 @@ import {
 import type { InvestmentProfile, SurveyQuestion } from '../types/survey';
 import { PERSONA, TARGET_MONTHLY_LIVING_COST, useRetirementReport } from '../hooks/useRetirementReport';
 import { GoalEditModal } from '../components/GoalEditModal';
+import { LoadingSpinner } from '../components/LoadingSpinner';
 
 interface ConsultantSummaryTabProps {
   profile: InvestmentProfile;
@@ -501,7 +502,9 @@ function RecommendedPortfolioSection({
   if (!recommendedPortfolio) {
     return (
       <Section title="추천 포트폴리오">
-        <p className="text-[12px] leading-[18px] text-[#6B7280]">불러오는 중...</p>
+        <div className="flex justify-center py-1">
+          <LoadingSpinner className="h-4 w-4" />
+        </div>
       </Section>
     );
   }
