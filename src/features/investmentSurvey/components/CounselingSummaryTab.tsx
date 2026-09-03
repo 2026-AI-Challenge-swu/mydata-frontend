@@ -3,6 +3,7 @@ import type { InvestmentProfile } from '../types/survey';
 import type { RetirementReportResult } from '../api/retirementReportApi';
 import { CompassIcon } from './icons';
 import { GoalEditModal } from './GoalEditModal';
+import { LoadingSpinner } from './LoadingSpinner';
 import { PERSONA, TARGET_MONTHLY_LIVING_COST } from '../hooks/useRetirementReport';
 import { useConnectionStore } from '../../mydata/stores/connectionStore';
 import {
@@ -152,7 +153,9 @@ export function CounselingSummaryTab({ profile, connected, retirementReport }: C
                   ))}
                 </ul>
               ) : (
-                <p className="mt-3 text-[12px] leading-[18px] text-[#6B7280]">불러오는 중...</p>
+                <div className="mt-3 flex justify-center py-1">
+                  <LoadingSpinner className="h-4 w-4" />
+                </div>
               )}
             </section>
 
@@ -182,28 +185,28 @@ export function CounselingSummaryTab({ profile, connected, retirementReport }: C
                 <div className="flex-1 rounded-xl bg-[#F0F0EC] py-2 text-center">
                   <div className="text-[10px] leading-[15px] text-[#6B7280]">목표 생활비</div>
                   <div className="mt-0.5 text-[13px] leading-[19.5px] font-bold text-[#1A1A2E]">
-                    {fundAnalysis ? formatManwon(fundAnalysis.targetLivingCost) : '불러오는 중...'}
+                    {fundAnalysis ? formatManwon(fundAnalysis.targetLivingCost) : <LoadingSpinner />}
                   </div>
                 </div>
                 <span className="text-[18px] leading-[28px] font-bold text-[#E85D4A]">−</span>
                 <div className="flex-1 rounded-xl bg-[#F0F0EC] py-2 text-center">
                   <div className="text-[10px] leading-[15px] text-[#6B7280]">예상 연금</div>
                   <div className="mt-0.5 text-[13px] leading-[19.5px] font-bold text-[#1A1A2E]">
-                    {fundAnalysis ? formatManwon(fundAnalysis.expectedMonthlyPension) : '불러오는 중...'}
+                    {fundAnalysis ? formatManwon(fundAnalysis.expectedMonthlyPension) : <LoadingSpinner />}
                   </div>
                 </div>
                 <span className="text-[18px] leading-[28px] font-bold text-[#E85D4A]">=</span>
                 <div className="flex-1 rounded-xl bg-[#FEF2F2] py-2 text-center">
                   <div className="text-[10px] leading-[15px] text-[#E85D4A]">월 부족</div>
                   <div className="mt-0.5 text-[13px] leading-[19.5px] font-bold text-[#E85D4A]">
-                    {fundAnalysis ? formatManwon(fundAnalysis.monthlyShortfall) : '불러오는 중...'}
+                    {fundAnalysis ? formatManwon(fundAnalysis.monthlyShortfall) : <LoadingSpinner />}
                   </div>
                 </div>
               </div>
               <div className="mt-3 rounded-2xl bg-[#FEF2F2] px-4 py-3 text-center">
                 <p className="text-[11px] leading-[16.5px] text-[#6B7280]">{retirementAge}세까지 준비 필요 금액</p>
                 <p className="text-[22px] leading-[33px] font-extrabold text-[#E85D4A]">
-                  {fundAnalysis ? `약 ${formatEok(fundAnalysis.requiredAmountAtRetirement)}` : '불러오는 중...'}
+                  {fundAnalysis ? `약 ${formatEok(fundAnalysis.requiredAmountAtRetirement)}` : <LoadingSpinner />}
                 </p>
                 {fundAnalysis && (
                   <p className="text-[10px] leading-[15px] text-[#6B7280]">물가상승률 {INFLATION_RATE * 100}% 반영</p>
@@ -232,19 +235,19 @@ export function CounselingSummaryTab({ profile, connected, retirementReport }: C
                 <div className="rounded-xl bg-[#F0F0EC] px-1.5 py-2">
                   <div className="text-[8px] leading-[12px] whitespace-nowrap text-[#6B7280]">{FUTURE_ASSET_TARGET_AGE}세 예상 자산 (현행)</div>
                   <div className="mt-0.5 text-[13px] leading-[19.5px] font-bold text-[#1A1A2E]">
-                    {lastFutureAssetPoint ? formatEok(lastFutureAssetPoint.maintainAmount) : '불러오는 중...'}
+                    {lastFutureAssetPoint ? formatEok(lastFutureAssetPoint.maintainAmount) : <LoadingSpinner />}
                   </div>
                 </div>
                 <div className="rounded-xl bg-[#F0F0EC] px-1.5 py-2">
                   <div className="text-[8px] leading-[12px] whitespace-nowrap text-[#6B7280]">{FUTURE_ASSET_TARGET_AGE}세 예상 자산 (+20만)</div>
                   <div className="mt-0.5 text-[13px] leading-[19.5px] font-bold text-[#2196F3]">
-                    {lastFutureAssetPoint ? formatEok(lastFutureAssetPoint.plus20Amount) : '불러오는 중...'}
+                    {lastFutureAssetPoint ? formatEok(lastFutureAssetPoint.plus20Amount) : <LoadingSpinner />}
                   </div>
                 </div>
                 <div className="rounded-xl bg-[#F0F0EC] px-1.5 py-2">
                   <div className="text-[8px] leading-[12px] whitespace-nowrap text-[#6B7280]">월 부족 생활비</div>
                   <div className="mt-0.5 text-[13px] leading-[19.5px] font-bold text-[#E85D4A]">
-                    {fundAnalysis ? formatManwon(fundAnalysis.monthlyShortfall) : '불러오는 중...'}
+                    {fundAnalysis ? formatManwon(fundAnalysis.monthlyShortfall) : <LoadingSpinner />}
                   </div>
                 </div>
               </div>
@@ -262,7 +265,9 @@ export function CounselingSummaryTab({ profile, connected, retirementReport }: C
                   ))}
                 </ul>
               ) : (
-                <p className="mt-3 text-[12px] leading-[18px] text-[#6B7280]">불러오는 중...</p>
+                <div className="mt-3 flex justify-center py-1">
+                  <LoadingSpinner className="h-4 w-4" />
+                </div>
               )}
             </section>
           </>

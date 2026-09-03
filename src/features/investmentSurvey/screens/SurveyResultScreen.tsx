@@ -5,6 +5,7 @@ import type { RetirementReportResult } from '../api/retirementReportApi';
 import { AiAvatarIcon, DatabaseIcon, ReportIcon } from '../components/icons';
 import { FloatingChatButton } from '../components/FloatingChatButton';
 import { CounselingSummaryTab } from '../components/CounselingSummaryTab';
+import { LoadingSpinner } from '../components/LoadingSpinner';
 import { getRecommendedProductGroup } from '../constants/recommendedProductGroups';
 
 interface SurveyResultScreenProps {
@@ -139,9 +140,15 @@ export function SurveyResultScreen({ profile, questions, answers, connected, ret
                 </span>
                 AI 한줄 조언
               </h2>
-              <p className="mt-2 text-[13px] leading-[21.125px] text-[#6B7280]">
-                {retirementReport ? retirementReport.aiReport.total_comment : '불러오는 중...'}
-              </p>
+              {retirementReport ? (
+                <p className="mt-2 text-[13px] leading-[21.125px] text-[#6B7280]">
+                  {retirementReport.aiReport.total_comment}
+                </p>
+              ) : (
+                <div className="mt-2 flex justify-center py-1">
+                  <LoadingSpinner className="h-4 w-4" />
+                </div>
+              )}
             </div>
           )}
 
@@ -165,7 +172,7 @@ export function SurveyResultScreen({ profile, questions, answers, connected, ret
                     <div>
                       <p className="text-[11px] leading-[16.5px] font-bold text-[#2A78D6]">{label}</p>
                       <p className="text-[13px] leading-[19.5px] text-[#1A1A2E]">
-                        {quickTodos[index]?.todo ?? '불러오는 중...'}
+                        {quickTodos[index]?.todo ?? <LoadingSpinner />}
                       </p>
                     </div>
                   </li>

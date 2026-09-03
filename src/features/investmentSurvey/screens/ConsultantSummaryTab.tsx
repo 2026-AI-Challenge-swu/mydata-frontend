@@ -16,6 +16,7 @@ import {
 import type { InvestmentProfile, SurveyQuestion } from '../types/survey';
 import { PERSONA, TARGET_MONTHLY_LIVING_COST, useRetirementReport } from '../hooks/useRetirementReport';
 import { GoalEditModal } from '../components/GoalEditModal';
+import { LoadingSpinner } from '../components/LoadingSpinner';
 
 interface ConsultantSummaryTabProps {
   profile: InvestmentProfile;
@@ -261,20 +262,28 @@ export function ConsultantSummaryTab({ profile, answers, connected, initialRepor
       <Section title="미래 자산 시뮬레이션">
         {/* Section 기본 mt-3(12px)보다 좁게 — Figma는 타이틀에 훨씬 더 가까이 붙어있음. */}
         <p className="-mt-2 text-[12px] leading-[18px] text-[#6B7280]">65세까지 시나리오별 예상</p>
-        <div className="mt-3 grid grid-cols-3 gap-2">
-          {scenarios.map((scenario, index) => (
-            <div key={scenario.label} className="rounded-xl bg-[#F0F0EC] py-2 text-center">
-              <div className="text-[10px] leading-[15px] text-[#6B7280]">{scenario.label}</div>
-              <div
-                className="text-[13px] leading-[19.5px] font-extrabold"
-                style={{ color: SCENARIO_COLORS[index] }}
-              >
-                {formatEok(scenario.futureValue)}
-              </div>
+        {retirementReport ? (
+          <>
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              {scenarios.map((scenario, index) => (
+                <div key={scenario.label} className="rounded-xl bg-[#F0F0EC] py-2 text-center">
+                  <div className="text-[10px] leading-[15px] text-[#6B7280]">{scenario.label}</div>
+                  <div
+                    className="text-[13px] leading-[19.5px] font-extrabold"
+                    style={{ color: SCENARIO_COLORS[index] }}
+                  >
+                    {formatEok(scenario.futureValue)}
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-        <FutureAssetChart points={futureAssetPoints} />
+            <FutureAssetChart points={futureAssetPoints} />
+          </>
+        ) : (
+          <div className="mt-3 flex justify-center py-2">
+            <LoadingSpinner className="h-4 w-4" />
+          </div>
+        )}
       </Section>
 
       <AiSummarySection totalComment={retirementReport?.aiReport.total_comment} />
@@ -501,7 +510,9 @@ function RecommendedPortfolioSection({
   if (!recommendedPortfolio) {
     return (
       <Section title="추천 포트폴리오">
-        <p className="text-[12px] leading-[18px] text-[#6B7280]">불러오는 중...</p>
+        <div className="flex justify-center py-1">
+          <LoadingSpinner className="h-4 w-4" />
+        </div>
       </Section>
     );
   }
@@ -713,8 +724,9 @@ function FutureAssetChart({ points }: { points: { age: number; maintainAmount: n
 }
 
 // 아래 3개 섹션은 백엔드 /api/retirement-report 응답의 aiReport 필드(내부적으로 /api/report → 외부 AI
-// 리포트 생성 서비스 프록시를 호출)로 채움. 그 서비스가 꺼져있어 호출이 실패하면 retirementReport 전체가
-// null로 남으므로, 이 경우 안정추구형 2등급 페르소나 기준 고정 문구로 폴백(데모 범위).
+// 리포트 생성 서비스 프록시를 호출)로 채움. 예전엔 그 서비스가 꺼져있어 호출이 실패하면 고정 문구/데모
+// 데이터로 조용히 폴백했는데, 로딩 중인지 실패한 건지 구분이 안 돼서 혼란스러웠음(2026-09-03) — 값이
+// 아직 없으면 그냥 스피너를 보여주는 것으로 통일함. 다른 스피너 처리 구간과 동일한 패턴.
 function AiSummarySection({ totalComment }: { totalComment?: string }) {
   return (
     <Section
@@ -726,32 +738,33 @@ function AiSummarySection({ totalComment }: { totalComment?: string }) {
       }
       contentClassName="mt-2"
     >
-      <p className="text-[13px] leading-[21.125px] text-[#6B7280]">
-        {totalComment ??
-          `10문항 진단 총점 ${19}점 → 안정추구형 2등급. 손실 감내도 낮음·투자 경험 부족·단기 유동성 필요 3개 요인이
-        복합 반영. 개인연금 미가입 확인됨. 우선 연금저축계좌 개설 → 세액공제 최대화 → DC형 운용전략 채권형 전환
-        순서로 상담 진행 권고.`}
-      </p>
+      {totalComment ? (
+        <p className="text-[13px] leading-[21.125px] text-[#6B7280]">{totalComment}</p>
+      ) : (
+        <div className="flex justify-center py-2">
+          <LoadingSpinner className="h-4 w-4" />
+        </div>
+      )}
     </Section>
   );
 }
 
-const FALLBACK_ROADMAP_STEPS = [
-  { id: 1, time: '이번 달', todo: '연금저축계좌 개설' },
-  { id: 2, time: '다음 달', todo: '월 20만원 자동이체 설정' },
-  { id: 3, time: '3개월 후', todo: '퇴직연금 DC형 운용전략 변경' },
-  { id: 4, time: '1년 후', todo: '포트폴리오 리밸런싱 점검' },
-  { id: 5, time: '매년', todo: '세액공제 한도 확인 및 조정' },
-];
-
 function RoadmapSection({ roadMap }: { roadMap?: { id: number; time: string; todo: string }[] }) {
-  const steps = roadMap && roadMap.length > 0 ? roadMap : FALLBACK_ROADMAP_STEPS;
+  if (!roadMap || roadMap.length === 0) {
+    return (
+      <Section title={<span className="font-bold">실행 로드맵</span>}>
+        <div className="flex justify-center py-2">
+          <LoadingSpinner className="h-4 w-4" />
+        </div>
+      </Section>
+    );
+  }
   return (
     <Section title={<span className="font-bold">실행 로드맵</span>}>
       <ol className="relative flex flex-col gap-4">
         {/* 원형 스텝 아이콘들을 잇는 세로 연결선 — 첫 원의 중심~마지막 원의 중심까지(원 지름 16px의 절반인 8px씩 안쪽으로). */}
         <div className="absolute top-2 bottom-2 left-2 w-[2px] bg-black/8" aria-hidden="true" />
-        {steps.map((step) => (
+        {roadMap.map((step) => (
           <li key={step.id} className="relative flex items-start gap-2.5">
             <span className="h-4 w-4 shrink-0 rounded-full border-2 border-black/8 bg-white" aria-hidden="true" />
             <div>
@@ -765,22 +778,24 @@ function RoadmapSection({ roadMap }: { roadMap?: { id: number; time: string; tod
   );
 }
 
-const FALLBACK_CONSULTING_POINTS = [
-  { tendency: '계획형 성향', detail: '목표금액 시뮬레이션이 효과적' },
-  { tendency: 'DC형 자기운용 가능', detail: '운용전략 변경 상담' },
-  { tendency: '위험 허용 낮음', detail: '원리금보장+채권형 혼합 제안' },
-];
-
 function ConsultingPointsSection({
   counsellingPoints,
 }: {
   counsellingPoints?: { tendency: string; detail: string }[];
 }) {
-  const points = counsellingPoints && counsellingPoints.length > 0 ? counsellingPoints : FALLBACK_CONSULTING_POINTS;
+  if (!counsellingPoints || counsellingPoints.length === 0) {
+    return (
+      <Section title={<span className="font-bold">상담 포인트</span>}>
+        <div className="flex justify-center py-2">
+          <LoadingSpinner className="h-4 w-4" />
+        </div>
+      </Section>
+    );
+  }
   return (
     <Section title={<span className="font-bold">상담 포인트</span>}>
       <ul className="flex flex-col gap-2">
-        {points.map((point) => (
+        {counsellingPoints.map((point) => (
           <li key={`${point.tendency}-${point.detail}`} className="flex items-center gap-2 text-xs text-[#1A1A2E]">
             <AlertCircleIcon />
             {point.tendency} — {point.detail}
