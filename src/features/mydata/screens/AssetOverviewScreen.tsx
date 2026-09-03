@@ -2,11 +2,11 @@ import { useNavigate } from 'react-router-dom';
 import { useConnectionStore } from '../stores/connectionStore';
 import { calculateRetirementMonthlyPension } from '../utils/assetSummary';
 
-// 연금저축·IRP 세액공제 한도(2023년 개정 세법 기준). 합산 연 900만원까지 인정, 총급여 5,500만원 이하(종합소득 4,500만원 이하) 구간 공제율 16.5%.
-// 5,500만원 초과 구간은 13.2%로 낮아지지만, 김민준의 정확한 세전 소득 구간은 마이데이터로 확인 불가(은행 거래내역엔 세후 급여만 제공)해 낮은 구간을 가정.
+// 연금저축·IRP 세액공제 한도(2023년 개정 세법 기준). 합산 연 900만원까지 인정, 총급여 5,500만원 이하(종합소득 4,500만원 이하) 구간 공제율 16.5%,
+// 초과 구간은 13.2%. 세전 연봉은 이제 소득 정보 연동(income.annualGrossSalary)으로 실제 값을 알 수 있어서 그 값으로 구간을 그대로 판별함
+// (2026-09-03: 예전엔 PERSONA 상수라 세전 소득 구간을 알 방법이 없어서 무조건 낮은 구간(16.5%)을 가정했었는데, 연동 후에도 그 가정이 남아있던 걸 발견 → 수정).
 const PENSION_TAX_DEDUCTION_LIMIT = 9_000_000;
-const PENSION_TAX_DEDUCTION_RATE = 0.165;
-const MAX_PENSION_TAX_DEDUCTION = PENSION_TAX_DEDUCTION_LIMIT * PENSION_TAX_DEDUCTION_RATE;
+const PENSION_TAX_DEDUCTION_BRACKET_THRESHOLD = 55_000_000;
 
 // 퇴직연금 월 환산 공식(S1-05 확정, 2026-08-26 기획팀 검토 완료)은 assetSummary.ts의 것과 완전히 동일한
 // 로직이 이 파일에 따로 복붙돼있었음(2026-09-03 발견) — kimMinjunAge/CURRENT_AGE처럼 값은 같지만 출처가
@@ -135,6 +135,9 @@ export function AssetOverviewScreen() {
   if (!identity || !income || !nationalPension || !retirementPension || !personalPension || !savingsInvestment || !bankTransaction) {
     return null;
   }
+
+  const pensionTaxDeductionRate = income.annualGrossSalary <= PENSION_TAX_DEDUCTION_BRACKET_THRESHOLD ? 0.165 : 0.132;
+  const maxPensionTaxDeduction = PENSION_TAX_DEDUCTION_LIMIT * pensionTaxDeductionRate;
 
   const personalPensionBalance = personalPension.accounts.reduce((sum, account) => sum + account.balance, 0);
   const personalPensionEmployeeContribution = personalPension.accounts.reduce(
@@ -306,8 +309,8 @@ export function AssetOverviewScreen() {
             ]}
             highlight={
               personalPensionEmployeeContribution > 0
-                ? `납입을 늘리면 연 최대 ${formatManwonPrecise(MAX_PENSION_TAX_DEDUCTION)} 세액공제를 받을 수 있어요`
-                : `본인 납입을 시작하면 연 최대 ${formatManwonPrecise(MAX_PENSION_TAX_DEDUCTION)} 세액공제를 받을 수 있어요`
+                ? `납입을 늘리면 연 최대 ${formatManwonPrecise(maxPensionTaxDeduction)} 세액공제를 받을 수 있어요`
+                : `본인 납입을 시작하면 연 최대 ${formatManwonPrecise(maxPensionTaxDeduction)} 세액공제를 받을 수 있어요`
             }
           />
         </div>
