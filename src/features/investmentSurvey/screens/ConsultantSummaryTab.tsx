@@ -46,11 +46,6 @@ function formatEok(won: number) {
   return `${(won / 100_000_000).toFixed(1)}억`;
 }
 
-// formatManwon과 달리 소수점 첫째 자리까지 보존(세액공제 한도처럼 148.5만원 같은 반올림 안 되는 값용)
-function formatManwonPrecise(won: number) {
-  return `${(won / 10_000).toLocaleString('ko-KR', { maximumFractionDigits: 1 })}만원`;
-}
-
 export function ConsultantSummaryTab({ profile, questions, answers, connected, initialReport }: ConsultantSummaryTabProps) {
   const items = useConnectionStore((state) => state.items);
   const [memo, setMemo] = useState('');
@@ -244,34 +239,6 @@ export function ConsultantSummaryTab({ profile, questions, answers, connected, i
         officialName={profile.officialName}
         recommendedPortfolio={retirementReport?.recommendedPortfolio}
       />
-
-      <Section title="절세 효과 분석">
-        <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-2xl bg-[#F0F0EC] p-3 text-center">
-            <p className="text-[10px] leading-[15px] text-[#6B7280]">현재 세액공제</p>
-            <p className="text-[18px] leading-[27px] font-extrabold text-[#6B7280]">
-              {retirementReport?.taxSavingAnalysis.currentDeductionAmount ? formatManwon(retirementReport.taxSavingAnalysis.currentDeductionAmount) : '0원'}
-            </p>
-            <p className="text-[10px] leading-[15px] text-[#6B7280]">본인 납입 없음</p>
-          </div>
-          <div className="rounded-2xl bg-[#EBF3FF] p-3 text-center">
-            <p className="text-[10px] leading-[15px] text-[#2A78D6]">추천 설계 시</p>
-            <p className="text-[18px] leading-[27px] font-extrabold text-[#2A78D6]">
-              {formatManwonPrecise(retirementReport?.taxSavingAnalysis.recommendedDeductionAmount ?? 0)}
-            </p>
-            <p className="text-[10px] leading-[15px] text-[#2A78D6]">연간</p>
-          </div>
-        </div>
-        <div className="mt-3 rounded-2xl bg-[#EBF3FF] py-3 text-center">
-          <p className="text-[11px] leading-[16.5px] text-[#6B7280]">연간 절세 증가</p>
-          <p className="text-[26px] leading-[39px] font-extrabold text-[#2A78D6]">
-            +{formatManwonPrecise(retirementReport?.taxSavingAnalysis.increaseAmount ?? 0)}
-          </p>
-          <p className="text-[10px] leading-[15px] text-[#6B7280]">
-            10년 누적 약 {formatManwon((retirementReport?.taxSavingAnalysis.increaseAmount ?? 0) * 10)} 절세
-          </p>
-        </div>
-      </Section>
 
       <Section title="미래 자산 시뮬레이션">
         {/* Section 기본 mt-3(12px)보다 좁게 — Figma는 타이틀에 훨씬 더 가까이 붙어있음. */}

@@ -230,12 +230,6 @@ export function CounselingSummaryTab({ profile, connected, retirementReport }: C
               <p className="text-[10px] leading-[15px] font-bold tracking-[1px] text-[#6B7280] uppercase">핵심 지표</p>
               <div className="mt-3 grid grid-cols-2 gap-3">
                 <div className="rounded-xl bg-[#F0F0EC] px-3 py-2">
-                  <div className="text-[10px] leading-[15px] text-[#6B7280]">연간 절세 효과</div>
-                  <div className="mt-0.5 text-[13px] leading-[19.5px] font-bold text-[#2A78D6]">
-                    {retirementReport ? `+${formatManwon(retirementReport.taxSavingAnalysis.increaseAmount)}` : '불러오는 중...'}
-                  </div>
-                </div>
-                <div className="rounded-xl bg-[#F0F0EC] px-3 py-2">
                   <div className="text-[10px] leading-[15px] text-[#6B7280]">{FUTURE_ASSET_TARGET_AGE}세 예상 자산 (현행)</div>
                   <div className="mt-0.5 text-[13px] leading-[19.5px] font-bold text-[#1A1A2E]">
                     {lastFutureAssetPoint ? formatEok(lastFutureAssetPoint.maintainAmount) : '불러오는 중...'}

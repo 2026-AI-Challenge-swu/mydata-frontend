@@ -91,8 +91,11 @@ export function ChatScreen() {
           <LeftArrowIcon />
         </button>
         <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#FEF2F2]">
-            <AiAvatarIcon />
+          <div
+            className="flex h-7 w-7 items-center justify-center rounded-full"
+            style={{ backgroundColor: profile.badgeBackground }}
+          >
+            <AiAvatarIcon color={profile.accentColor} />
           </div>
           <div>
             <p className="text-sm leading-[14px] font-bold text-[#1A1A2E]">AI 상담</p>
@@ -105,8 +108,11 @@ export function ChatScreen() {
         {messages.map((message) =>
           message.role === 'bot' ? (
             <div key={message.id} className="flex items-end gap-2">
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#FEF2F2]">
-                <AiAvatarIcon />
+              <div
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
+                style={{ backgroundColor: profile.badgeBackground }}
+              >
+                <AiAvatarIcon color={profile.accentColor} />
               </div>
               <div className="max-w-[280px] rounded-tl-2xl rounded-tr-2xl rounded-br-2xl rounded-bl-[10px] border-[0.667px] border-black/8 bg-white px-4 py-3 text-[13px] leading-[21.125px] text-[#1A1A2E]">
                 <MarkdownLiteText text={message.text} />
@@ -123,8 +129,11 @@ export function ChatScreen() {
 
         {isTyping && (
           <div className="flex items-end gap-2">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#FEF2F2]">
-              <AiAvatarIcon />
+            <div
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
+              style={{ backgroundColor: profile.badgeBackground }}
+            >
+              <AiAvatarIcon color={profile.accentColor} />
             </div>
             {statusMessage ? (
               <div className="rounded-tl-2xl rounded-tr-2xl rounded-br-2xl rounded-bl-[10px] border-[0.667px] border-black/8 bg-white px-4 py-3 text-xs leading-[18px] text-[#6B7280]">
