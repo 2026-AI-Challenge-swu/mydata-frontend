@@ -1,4 +1,7 @@
 export type ConnectionCategory =
+  | 'identity'
+  | 'income'
+  | 'employment'
   | 'nationalPension'
   | 'retirementPension'
   | 'personalPension'
@@ -6,6 +9,25 @@ export type ConnectionCategory =
   | 'bankTransaction';
 
 export type ScreenStep = 'intro' | 'consent' | 'loading' | 'result';
+
+// 본인인증(PASS 등): 실제로는 회원가입 시점에 한 번 받는 값이라 나머지 항목들과 데이터 소스
+// 성격은 다르지만, 이 프로젝트엔 별도 회원가입 플로우가 없어서 같은 연동 체크리스트로 편입(2026-09-03).
+export interface IdentityData {
+  name: string;
+  birthYear: number;
+  gender: 'MALE' | 'FEMALE';
+}
+
+// 소득 정보: 공공 마이데이터(정부24) 소득금액증명원 대응. 국민연금과 같은 명분으로 mock.
+export interface IncomeData {
+  annualGrossSalary: number; // 세전 연봉(원)
+}
+
+// 재직 정보: 공공 마이데이터 건강보험 자격득실확인서/재직증명서 대응. "직종" 세부 카테고리까지는
+// 이 서류들의 표준 필드가 아니라서 jobLabel은 근사 mock임(EmploymentResponse 주석 참고).
+export interface EmploymentData {
+  jobLabel: string;
+}
 
 // 국민연금: 금융 마이데이터 대상이 아니라 자체 설계 규격으로 mock 처리
 export interface NationalPensionData {
@@ -59,6 +81,9 @@ export interface BankTransactionData {
 
 // 카테고리 문자열 → 해당 카테고리의 실제 데이터 타입을 연결해주는 매핑
 export interface CategoryDataMap {
+  identity: IdentityData;
+  income: IncomeData;
+  employment: EmploymentData;
   nationalPension: NationalPensionData;
   retirementPension: RetirementPensionData;
   personalPension: PersonalPensionData;

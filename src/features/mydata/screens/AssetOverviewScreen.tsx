@@ -1,6 +1,5 @@
 import { useNavigate } from 'react-router-dom';
 import { useConnectionStore } from '../stores/connectionStore';
-import { PERSONA } from '../../investmentSurvey/hooks/useRetirementReport';
 import { calculateRetirementMonthlyPension } from '../utils/assetSummary';
 
 // 연금저축·IRP 세액공제 한도(2023년 개정 세법 기준). 합산 연 900만원까지 인정, 총급여 5,500만원 이하(종합소득 4,500만원 이하) 구간 공제율 16.5%.
@@ -105,6 +104,8 @@ export function AssetOverviewScreen() {
   // 이 화면은 마이데이터 연동(로딩/결과 화면)을 통과해야만 진입하는 라우트라
   // 정상 흐름에선 5개 항목이 전부 success여야 함. 혹시 직접 URL로 들어온 경우엔 연동 화면으로 돌려보냄.
   const allSuccess =
+    items.identity.status === 'success' &&
+    items.income.status === 'success' &&
     items.nationalPension.status === 'success' &&
     items.retirementPension.status === 'success' &&
     items.personalPension.status === 'success' &&
@@ -118,6 +119,8 @@ export function AssetOverviewScreen() {
 
   // TypeScript가 위 allSuccess 체크만으로는 각 상태를 success로 좁혀주지 않아서(변수별로 따로 판별),
   // 여기서 status가 'success'인 케이스로 재선언
+  const identity = items.identity.status === 'success' ? items.identity.data : null;
+  const income = items.income.status === 'success' ? items.income.data : null;
   const nationalPension =
     items.nationalPension.status === 'success' ? items.nationalPension.data : null;
   const retirementPension =
@@ -129,7 +132,7 @@ export function AssetOverviewScreen() {
   const bankTransaction =
     items.bankTransaction.status === 'success' ? items.bankTransaction.data : null;
 
-  if (!nationalPension || !retirementPension || !personalPension || !savingsInvestment || !bankTransaction) {
+  if (!identity || !income || !nationalPension || !retirementPension || !personalPension || !savingsInvestment || !bankTransaction) {
     return null;
   }
 
@@ -152,7 +155,7 @@ export function AssetOverviewScreen() {
   // bankTransaction.monthlyIncome을 그대로 썼는데, 세후 실수령액은 DC 납입 기준과 무관한 값이라 부정확했음).
   const retirementMonthlyEstimate = calculateRetirementMonthlyPension({
     currentBalance: retirementPension.balance,
-    annualContribution: PERSONA.annualSalaryPreTax / 12,
+    annualContribution: income.annualGrossSalary / 12,
     retirementAge: nationalPension.paymentStartAge,
   });
   // 예상 월 연금 = 국민연금(자동 월액) + 퇴직연금(연금현가공식 환산). 정의서 S1-05 기준
@@ -184,7 +187,7 @@ export function AssetOverviewScreen() {
         마이데이터 연동 완료
       </div>
 
-      <h1 className="mt-2 text-[22px] leading-[33px] font-extrabold text-[#1A1A2E]">김민준님의 자산 현황</h1>
+      <h1 className="mt-2 text-[22px] leading-[33px] font-extrabold text-[#1A1A2E]">{identity.name}님의 자산 현황</h1>
       <p className="mt-1 text-[13px] leading-[19.5px] text-[#6B7280]">
         {now.getFullYear()}년 {now.getMonth() + 1}월 기준
       </p>

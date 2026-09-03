@@ -3,18 +3,10 @@ import type { ConnectedMydata } from '../../mydata/utils/assetSummary';
 import { generateRetirementReport, type RetirementReportResult } from '../api/retirementReportApi';
 import { CURRENT_AGE } from '../../mydata/utils/assetSummary';
 
-// 페르소나 기준표(김민준, 29세) — 마이데이터로 연동되지 않는 값들이라 상수로 둠.
-// "내 결과" 화면과 전문가 리포트 화면이 같은 리포트를 봐야 해서, 두 화면이 리포트를 요청할 때
-// 쓰는 이 기준값도 한 곳(이 훅)에만 두고 같이 씀 — 예전엔 ConsultantSummaryTab.tsx에만 있었음.
+// 이름/생년월일/성별/연봉/직업은 이제 마이데이터 연동(identity/income/employment)으로 받아오므로
+// 여기 상수로 안 둠(2026-09-03: PERSONA에서 분리). 아래 값만 마이데이터/설문 어디에서도 안 내려오는
+// 진짜 예외값이라 상수로 남김.
 export const PERSONA = {
-  name: '김민준',
-  birthYear: 1997,
-  annualSalaryPreTax: 48_000_000, // 연봉(세전). bankTransaction은 세후 월급만 제공해서 이 값은 정의서 기준 그대로 하드코딩.
-  job: '직장인 (IT·기획)',
-  // 투자 경험은 별도 상수가 없음 — 설문 1번 문항(category: "투자 경험") 답변에서 직접 파생해서 씀
-  // (ConsultantSummaryTab.tsx 참고, 2026-09-03 수정).
-  // 추천 포트폴리오 배분표가 성별별로 갈리는데 마이데이터/설문에 성별 필드가 없어 이름(김민준)으로 추정한 상수값.
-  gender: '남' as const,
   // 세액공제는 "올해 신규 납입액" 기준으로 계산되는 값이라, mock의 employee_amt(430만원, IRP 개설 이후
   // 누적 총 납입액)와는 다른 의미. 올해분 신규 납입 데이터가 없어서 0으로 둠 — "누적 총 납입액이 0원"이라는
   // 뜻이 아니므로 화면에 "본인 납입액"(누적)을 표시할 땐 이 값 대신 실제 employeeContribution을 써야 함
@@ -82,10 +74,10 @@ export function useRetirementReport({
     generateRetirementReport({
       surveyAnswers,
       currentAge: CURRENT_AGE,
-      gender: PERSONA.gender === '남' ? 'MALE' : 'FEMALE',
+      gender: connectedMydata.identity.gender,
       targetLivingCost,
       mydata: {
-        annualGrossSalary: PERSONA.annualSalaryPreTax,
+        annualGrossSalary: connectedMydata.income.annualGrossSalary,
         nationalPension: {
           estimatedMonthlyAmount: connectedMydata.nationalPension.estimatedMonthlyAmount,
           paymentStartAge: connectedMydata.nationalPension.paymentStartAge,

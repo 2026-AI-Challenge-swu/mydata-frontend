@@ -4,7 +4,7 @@ import type { RetirementReportResult } from '../api/retirementReportApi';
 import { CompassIcon } from './icons';
 import { GoalEditModal } from './GoalEditModal';
 import { LoadingSpinner } from './LoadingSpinner';
-import { PERSONA, TARGET_MONTHLY_LIVING_COST } from '../hooks/useRetirementReport';
+import { TARGET_MONTHLY_LIVING_COST } from '../hooks/useRetirementReport';
 import { useConnectionStore } from '../../mydata/stores/connectionStore';
 import {
   CURRENT_AGE,
@@ -67,7 +67,7 @@ export function CounselingSummaryTab({ profile, connected, retirementReport }: C
     ? (() => {
         const retirementMonthlyEstimate = calculateRetirementMonthlyPension({
           currentBalance: connectedMydata.retirementPension.balance,
-          annualContribution: PERSONA.annualSalaryPreTax / 12,
+          annualContribution: connectedMydata.income.annualGrossSalary / 12,
           retirementAge,
         });
         const expectedMonthlyPension = connectedMydata.nationalPension.estimatedMonthlyAmount + retirementMonthlyEstimate;
@@ -92,7 +92,7 @@ export function CounselingSummaryTab({ profile, connected, retirementReport }: C
         </div>
         <h2 className="mt-3 text-[22px] leading-[33px] font-extrabold text-white">AI 연금 설계 리포트</h2>
         <p className="mt-2 text-xs leading-[18px] text-[#99A1AF]">
-          기준일: {today} · 고객명: {PERSONA.name}
+          기준일: {today} · 고객명: {connectedMydata?.identity.name ?? '-'}
         </p>
       </div>
 

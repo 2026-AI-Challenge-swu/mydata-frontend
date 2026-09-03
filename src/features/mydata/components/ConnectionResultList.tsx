@@ -43,6 +43,9 @@ function RefreshIcon({ color }: { color: string }) {
 }
 
 const CATEGORY_ORDER: ConnectionCategory[] = [
+  'identity',
+  'income',
+  'employment',
   'nationalPension',
   'retirementPension',
   'personalPension',

@@ -1,4 +1,4 @@
-import type { NationalPensionData } from '../../types/connection';
+import type { EmploymentData, IdentityData, IncomeData, NationalPensionData } from '../../types/connection';
 import type {
   RawDcRetirementPensionResponse,
   RawPersonalPensionResponse,
@@ -8,6 +8,24 @@ import type {
 
 // 페르소나 나이(만 29세) — 기획팀 페르소나 설계 문서 기준. 마이데이터로 연동되는 값이 아니라 상수로 둠.
 export const kimMinjunAge = 29;
+
+// 본인인증(PASS 등) mock — 국민연금처럼 공식 API 스펙이 없어 raw 없이 domain 타입으로 바로 mock.
+export const kimMinjunIdentity: IdentityData = {
+  name: '김민준',
+  birthYear: 1997,
+  gender: 'MALE',
+};
+
+// 소득 정보(공공 마이데이터 소득금액증명원) mock.
+export const kimMinjunIncome: IncomeData = {
+  annualGrossSalary: 48000000,
+};
+
+// 재직 정보(공공 마이데이터 건강보험 자격득실확인서/재직증명서) mock — "직종" 세부 카테고리는
+// 이 서류들의 표준 필드가 아니라서 근사값(connection.ts EmploymentData 주석 참고).
+export const kimMinjunEmployment: EmploymentData = {
+  jobLabel: '직장인 (IT·기획)',
+};
 
 // 국민연금: 공식 API 스펙이 없어(금융 마이데이터 대상 아님) raw 없이 domain 타입으로 바로 mock
 // 값은 기획팀 페르소나 설계 문서 기준 (예상수령액 32만원/월 — 인터페이스 명세서에서 92만원 오기 확인 후 정정, 가입 4년차, 65세 기준)

@@ -4,6 +4,9 @@ import { fetchConnectionItem, retryConnectionItem } from './fetchConnectionData'
 import type { MockScenario } from '../mocks/scenarios';
 
 const CATEGORIES: ConnectionCategory[] = [
+  'identity',
+  'income',
+  'employment',
   'nationalPension',
   'retirementPension',
   'personalPension',

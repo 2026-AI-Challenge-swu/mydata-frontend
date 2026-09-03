@@ -6,6 +6,9 @@ import {
   mapBankTransactionResponse,
 } from '../api/mappers';
 import {
+  kimMinjunIdentity,
+  kimMinjunIncome,
+  kimMinjunEmployment,
   kimMinjunNationalPension,
   kimMinjunRetirementPensionRaw,
   kimMinjunPersonalPensionRaw,
@@ -26,6 +29,9 @@ export const mockScenarios: {
   [S in MockScenario]: { [C in ConnectionCategory]: ItemStatus<C> };
 } = {
   success: {
+    identity: { status: 'success', data: kimMinjunIdentity },
+    income: { status: 'success', data: kimMinjunIncome },
+    employment: { status: 'success', data: kimMinjunEmployment },
     nationalPension: { status: 'success', data: kimMinjunNationalPension },
     retirementPension: { status: 'success', data: retirementPensionSuccess },
     personalPension: { status: 'success', data: personalPensionSuccess },
@@ -35,6 +41,9 @@ export const mockScenarios: {
   // 국민연금은 금융 마이데이터 대상이 아니라 실제로도 이용기관 등록 심사 전이라 연계 불가
   // → 부분 실패 시나리오의 실패 사유를 그 이유로 명시
   partialFailure: {
+    identity: { status: 'success', data: kimMinjunIdentity },
+    income: { status: 'success', data: kimMinjunIncome },
+    employment: { status: 'success', data: kimMinjunEmployment },
     nationalPension: {
       status: 'error',
       message: '국민연금공단 연계 실패: 이용기관 등록 심사 미완료',
@@ -47,6 +56,9 @@ export const mockScenarios: {
   },
   // 인증 단계 자체가 실패한 경우 — 5개 항목 모두 조회를 시도조차 못 함
   failure: {
+    identity: { status: 'error', message: '인증 실패', retryable: true },
+    income: { status: 'error', message: '인증 실패', retryable: true },
+    employment: { status: 'error', message: '인증 실패', retryable: true },
     nationalPension: { status: 'error', message: '인증 실패', retryable: true },
     retirementPension: { status: 'error', message: '인증 실패', retryable: true },
     personalPension: { status: 'error', message: '인증 실패', retryable: true },
