@@ -168,6 +168,10 @@ export function AssetOverviewScreen() {
   }
 
   const personalPensionBalance = personalPension.accounts.reduce((sum, account) => sum + account.balance, 0);
+  const personalPensionEmployeeContribution = personalPension.accounts.reduce(
+    (sum, account) => sum + account.employeeContribution,
+    0,
+  );
   const cashBalance =
     savingsInvestment.accounts.find((account) => account.productName === '예금')?.balance ?? 0;
   const stockBalance =
@@ -327,9 +331,13 @@ export function AssetOverviewScreen() {
             badges={[
               { label: 'IRP·연금저축', color: 'purple' },
               { label: `잔액 ${formatManwon(personalPensionBalance)}`, color: 'gray' },
-              { label: '본인 납입 0원', color: 'orangeText' },
+              { label: `본인 납입 ${formatManwon(personalPensionEmployeeContribution)}`, color: 'orangeText' },
             ]}
-            highlight={`본인 납입을 시작하면 연 최대 ${formatManwonPrecise(MAX_PENSION_TAX_DEDUCTION)} 세액공제를 받을 수 있어요`}
+            highlight={
+              personalPensionEmployeeContribution > 0
+                ? `납입을 늘리면 연 최대 ${formatManwonPrecise(MAX_PENSION_TAX_DEDUCTION)} 세액공제를 받을 수 있어요`
+                : `본인 납입을 시작하면 연 최대 ${formatManwonPrecise(MAX_PENSION_TAX_DEDUCTION)} 세액공제를 받을 수 있어요`
+            }
           />
         </div>
 

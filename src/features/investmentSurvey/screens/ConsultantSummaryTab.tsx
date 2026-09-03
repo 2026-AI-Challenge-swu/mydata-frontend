@@ -182,7 +182,7 @@ export function ConsultantSummaryTab({ profile, answers, connected, initialRepor
         <div className="mt-3 rounded-xl bg-[#F0F0EC] px-3 py-2">
           <div className="text-[10px] leading-[15px] text-[#6B7280]">개인연금 (IRP·연금저축)</div>
           <div className="mt-0.5 text-[13px] leading-[19.5px] font-bold text-[#1A1A2E]">
-            {formatManwon(summary.personalPensionBalance)} (본인 납입 {PERSONA.personalContributionBySelf}원)
+            {formatManwon(summary.personalPensionBalance)} (본인 납입 {formatManwon(summary.personalPensionEmployeeContribution)})
           </div>
         </div>
       </Section>

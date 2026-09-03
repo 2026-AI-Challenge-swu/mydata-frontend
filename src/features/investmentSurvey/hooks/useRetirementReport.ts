@@ -14,9 +14,12 @@ export const PERSONA = {
   investmentExperienceLabel: '1~3년',
   // 추천 포트폴리오 배분표가 성별별로 갈리는데 마이데이터/설문에 성별 필드가 없어 이름(김민준)으로 추정한 상수값.
   gender: '남' as const,
-  // 정의서 확정표: "본인 납입액 0원, 데이터출처 퇴직연금사 연동 — 자동". mock의 employee_amt(430만원)는
-  // 이 확정값과 어긋나는 목데이터 쪽 오류라 판단, employee_amt 대신 이 확정 상수를 사용.
-  personalContributionBySelf: 0,
+  // 세액공제는 "올해 신규 납입액" 기준으로 계산되는 값이라, mock의 employee_amt(430만원, IRP 개설 이후
+  // 누적 총 납입액)와는 다른 의미. 올해분 신규 납입 데이터가 없어서 0으로 둠 — "누적 총 납입액이 0원"이라는
+  // 뜻이 아니므로 화면에 "본인 납입액"(누적)을 표시할 땐 이 값 대신 실제 employeeContribution을 써야 함
+  // (2026-09-03: 화면에 이 값을 잘못 재사용해서 "445만원 잔액인데 본인 납입 0원"처럼 앞뒤 안 맞게
+  // 보이던 버그 발견 → 수정, ConsultantSummaryTab/AssetOverviewScreen 참고).
+  annualContributionBySelfThisYear: 0,
 };
 
 // "목표 생활비" 정의서 기본값(국민연금연구원 통계 기준). 상담원이 "노후 부족 자금 분석" 카드에서
@@ -102,7 +105,7 @@ export function useRetirementReport({
           rcvStartDate: account.rcvStartDate,
           annualContribution:
             account.accountType === 'IRP'
-              ? PERSONA.personalContributionBySelf
+              ? PERSONA.annualContributionBySelfThisYear
               : estimateAnnualContribution(account.accumAmt, account.issueDate),
         })),
         savingsInvestment: {
