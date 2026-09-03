@@ -4,6 +4,9 @@ import { CATEGORY_LABELS } from '../constants';
 import type { ConnectionCategory } from '../types/connection';
 
 const CATEGORIES: ConnectionCategory[] = [
+  'identity',
+  'income',
+  'employment',
   'nationalPension',
   'retirementPension',
   'personalPension',
@@ -12,12 +15,81 @@ const CATEGORIES: ConnectionCategory[] = [
 ];
 
 const CATEGORY_SUBTITLES: Record<ConnectionCategory, string> = {
+  identity: '이름·생년월일·성별 확인',
+  income: '소득금액증명원 기준 세전 연봉',
+  employment: '재직 여부 및 직업 정보',
   nationalPension: '납부 이력 및 예상 수령액',
   retirementPension: 'DB형/DC형 적립금',
   personalPension: '연금저축·IRP 계좌 현황',
   savingsInvestment: '은행·증권사 보유 상품',
   bankTransaction: '월급·소비 패턴',
 };
+
+// 아래 3개(본인 확인/소득/재직 정보)는 Figma 시안엔 없던 항목이라, 기존 아이콘들과 같은 스타일
+// (획 기반, currentColor, viewBox 20x20)로 직접 제작.
+function UserCheckIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" className="h-5 w-5 text-[#2A78D6]" aria-hidden="true">
+      <path
+        d="M13.3334 17.5V15.8333C13.3334 14.9493 12.9822 14.1014 12.3571 13.4763C11.7319 12.8512 10.8841 12.5 10.0001 12.5H5.00008C4.11602 12.5 3.26818 12.8512 2.64306 13.4763C2.01793 14.1014 1.66675 14.9493 1.66675 15.8333V17.5"
+        stroke="currentColor"
+        strokeWidth="1.66667"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M7.50008 9.16667C9.34103 9.16667 10.8334 7.67428 10.8334 5.83333C10.8334 3.99238 9.34103 2.5 7.50008 2.5C5.65913 2.5 4.16675 3.99238 4.16675 5.83333C4.16675 7.67428 5.65913 9.16667 7.50008 9.16667Z"
+        stroke="currentColor"
+        strokeWidth="1.66667"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="M13.3333 6.66669L15 8.33335L18.3333 5.00002" stroke="currentColor" strokeWidth="1.66667" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function BanknoteIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" className="h-5 w-5 text-[#2A78D6]" aria-hidden="true">
+      <path
+        d="M2.5 5H17.5C17.9602 5 18.3333 5.3731 18.3333 5.83333V14.1667C18.3333 14.6269 17.9602 15 17.5 15H2.5C2.03976 15 1.66667 14.6269 1.66667 14.1667V5.83333C1.66667 5.3731 2.03976 5 2.5 5Z"
+        stroke="currentColor"
+        strokeWidth="1.66667"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M10 12.5C11.3807 12.5 12.5 11.3807 12.5 10C12.5 8.61929 11.3807 7.5 10 7.5C8.61929 7.5 7.5 8.61929 7.5 10C7.5 11.3807 8.61929 12.5 10 12.5Z"
+        stroke="currentColor"
+        strokeWidth="1.66667"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function BriefcaseIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" className="h-5 w-5 text-[#2A78D6]" aria-hidden="true">
+      <path
+        d="M17.5 5.83331H2.5C1.57953 5.83331 0.833334 6.57951 0.833334 7.49998V15.8333C0.833334 16.7538 1.57953 17.5 2.5 17.5H17.5C18.4205 17.5 19.1667 16.7538 19.1667 15.8333V7.49998C19.1667 6.57951 18.4205 5.83331 17.5 5.83331Z"
+        stroke="currentColor"
+        strokeWidth="1.66667"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M13.3333 17.5V4.16665C13.3333 3.72462 13.1577 3.30069 12.8452 2.98813C12.5326 2.67557 12.1087 2.49998 11.6667 2.49998H8.33333C7.89131 2.49998 7.46738 2.67557 7.15482 2.98813C6.84226 3.30069 6.66667 3.72462 6.66667 4.16665V17.5"
+        stroke="currentColor"
+        strokeWidth="1.66667"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 // 아래 4개 아이콘 전부 Figma "Copy as SVG"로 받아온 실제 벡터
 function PiggyIcon() {
@@ -105,6 +177,9 @@ function ReceiptIcon() {
 }
 
 const CATEGORY_ICONS: Record<ConnectionCategory, () => React.JSX.Element> = {
+  identity: UserCheckIcon,
+  income: BanknoteIcon,
+  employment: BriefcaseIcon,
   nationalPension: PiggyIcon,
   retirementPension: BuildingIcon,
   personalPension: ShieldIcon,

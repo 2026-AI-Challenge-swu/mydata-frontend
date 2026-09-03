@@ -1,5 +1,8 @@
 import type {
   ConnectionItems,
+  EmploymentData,
+  IdentityData,
+  IncomeData,
   NationalPensionData,
   RetirementPensionData,
   PersonalPensionData,
@@ -11,8 +14,13 @@ import type {
 // 가정: 은퇴까지 매년 3% 복리로 자산이 불어나고, 은퇴 후 20년(240개월)에 걸쳐 연금현가공식으로 나눠 받음.
 export const ASSUMED_ANNUAL_RETURN_RATE = 0.03;
 export const PENSION_PAYOUT_YEARS = 20;
-// 페르소나 기준표(만 29세) — 마이데이터로 연동되는 값이 아니라서 상수로 둠. 은퇴 나이는 국민연금 수급개시연령(paymentStartAge)을 그대로 재사용.
-export const CURRENT_AGE = 29;
+
+// 만 나이 계산 — 생일이 지났는지는 IdentityData에 월/일이 없어서 반영 못 하고, 연도 차이로만 근사함
+// (기존에 "만 29세"를 페르소나 상수로 하드코딩해뒀었는데, 2026-09-03 본인 확인 연동 후에도
+// identity.birthYear와 연결 안 된 채로 남아있던 걸 발견 → identity.birthYear에서 바로 계산하도록 수정).
+export function getCurrentAge(birthYear: number): number {
+  return new Date().getFullYear() - birthYear;
+}
 
 // 현재 잔액(currentBalance)을 연 복리로 은퇴 시점까지 불리고,
 // 연간 납입액(annualContribution)은 매달 나눠 적립하며 월복리로 불린 뒤,
@@ -20,13 +28,15 @@ export const CURRENT_AGE = 29;
 export function calculateRetirementMonthlyPension({
   currentBalance,
   annualContribution,
+  currentAge,
   retirementAge,
 }: {
   currentBalance: number;
   annualContribution: number;
+  currentAge: number;
   retirementAge: number;
 }) {
-  const yearsToRetirement = retirementAge - CURRENT_AGE;
+  const yearsToRetirement = retirementAge - currentAge;
   const monthlyRate = ASSUMED_ANNUAL_RETURN_RATE / 12;
 
   const futureValueOfBalance =
@@ -51,6 +61,9 @@ export function formatManwon(won: number) {
 }
 
 export interface ConnectedMydata {
+  identity: IdentityData;
+  income: IncomeData;
+  employment: EmploymentData;
   nationalPension: NationalPensionData;
   retirementPension: RetirementPensionData;
   personalPension: PersonalPensionData;
@@ -58,9 +71,12 @@ export interface ConnectedMydata {
   bankTransaction: BankTransactionData;
 }
 
-// 5개 항목이 전부 연동 성공(success) 상태일 때만 실제 데이터를 꺼내서 돌려줌. 하나라도 아니면 null.
+// 8개 항목이 전부 연동 성공(success) 상태일 때만 실제 데이터를 꺼내서 돌려줌. 하나라도 아니면 null.
 export function getConnectedMydata(items: ConnectionItems): ConnectedMydata | null {
   if (
+    items.identity.status !== 'success' ||
+    items.income.status !== 'success' ||
+    items.employment.status !== 'success' ||
     items.nationalPension.status !== 'success' ||
     items.retirementPension.status !== 'success' ||
     items.personalPension.status !== 'success' ||
@@ -71,6 +87,9 @@ export function getConnectedMydata(items: ConnectionItems): ConnectedMydata | nu
   }
 
   return {
+    identity: items.identity.data,
+    income: items.income.data,
+    employment: items.employment.data,
     nationalPension: items.nationalPension.data,
     retirementPension: items.retirementPension.data,
     personalPension: items.personalPension.data,
@@ -80,14 +99,15 @@ export function getConnectedMydata(items: ConnectionItems): ConnectedMydata | nu
 }
 
 // AssetOverviewScreen과 상담용 요약 리포트가 공통으로 쓰는 총자산/예상월연금 등 파생값 계산.
-// annualSalaryPreTax(세전 연봉)는 마이데이터 응답이 아니라 페르소나 상수라 이 유틸(assetSummary.ts)이
-// 직접 참조하지 않고, 호출하는 쪽(PERSONA를 이미 알고 있는 화면)에서 넘겨받음 — assetSummary.ts는
-// investmentSurvey/hooks/useRetirementReport.ts가 이미 이 파일(CURRENT_AGE)을 가져다 쓰고 있어서,
-// 반대 방향으로 PERSONA를 가져오면 순환 참조(circular import)가 생기기 때문.
-export function computeAssetSummary(
-  { nationalPension, retirementPension, personalPension, savingsInvestment, bankTransaction }: ConnectedMydata,
-  annualSalaryPreTax: number,
-) {
+export function computeAssetSummary({
+  identity,
+  income,
+  nationalPension,
+  retirementPension,
+  personalPension,
+  savingsInvestment,
+  bankTransaction,
+}: ConnectedMydata) {
   const personalPensionBalance = personalPension.accounts.reduce((sum, account) => sum + account.balance, 0);
   const personalPensionEmployeeContribution = personalPension.accounts.reduce(
     (sum, account) => sum + account.employeeContribution,
@@ -107,7 +127,8 @@ export function computeAssetSummary(
   // bankTransaction.monthlyIncome을 그대로 썼는데, 세후 실수령액은 DC 납입 기준과 무관한 값이라 부정확했음).
   const retirementMonthlyEstimate = calculateRetirementMonthlyPension({
     currentBalance: retirementPension.balance,
-    annualContribution: annualSalaryPreTax / 12,
+    annualContribution: income.annualGrossSalary / 12,
+    currentAge: getCurrentAge(identity.birthYear),
     retirementAge: nationalPension.paymentStartAge,
   });
   // 예상 월 연금 = 국민연금(자동 월액) + 퇴직연금(연금현가공식 환산). 정의서 S1-05 기준

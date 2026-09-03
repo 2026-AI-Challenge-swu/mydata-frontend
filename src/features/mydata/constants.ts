@@ -1,6 +1,9 @@
 import type { ConnectionCategory } from './types/connection';
 
 export const CATEGORY_LABELS: Record<ConnectionCategory, string> = {
+  identity: '본인 확인',
+  income: '소득 정보',
+  employment: '재직 정보',
   nationalPension: '국민연금 가입내역',
   retirementPension: '퇴직연금 현황',
   personalPension: '개인연금 가입여부',

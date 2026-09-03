@@ -1,6 +1,13 @@
 import axios from 'axios';
 import { httpClient } from './httpClient';
-import type { ConnectionCategory, ItemStatus, NationalPensionData } from '../types/connection';
+import type {
+  ConnectionCategory,
+  EmploymentData,
+  IdentityData,
+  IncomeData,
+  ItemStatus,
+  NationalPensionData,
+} from '../types/connection';
 import type {
   RawDcRetirementPensionResponse,
   RawPersonalPensionResponse,
@@ -16,6 +23,9 @@ import {
 import type { MockScenario } from '../mocks/scenarios';
 
 const ENDPOINT_PATH: Record<ConnectionCategory, string> = {
+  identity: 'identity',
+  income: 'income',
+  employment: 'employment',
   nationalPension: 'national-pension',
   retirementPension: 'retirement-pension',
   personalPension: 'personal-pension',
@@ -27,6 +37,12 @@ const ENDPOINT_PATH: Record<ConnectionCategory, string> = {
 // 여기서 카테고리에 맞는 매퍼를 골라서 domain 타입으로 변환.
 function toDomainData(category: ConnectionCategory, data: unknown) {
   switch (category) {
+    case 'identity':
+      return data as IdentityData;
+    case 'income':
+      return data as IncomeData;
+    case 'employment':
+      return data as EmploymentData;
     case 'nationalPension':
       return data as NationalPensionData;
     case 'retirementPension':

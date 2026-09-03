@@ -26,7 +26,7 @@ export function mapRetirementPensionResponse(
 }
 
 // IRP/연금저축은 세액공제 한도가 달라서 accountType으로 구분되는 계좌 리스트로 옴.
-// balance는 평가금액(eval_amt), employeeContribution은 본인부담금 누적(employee_amt) — 절세효과 분석용.
+// balance는 평가금액(eval_amt), employeeContribution은 본인부담금 누적(employee_amt) — AssetOverviewScreen의 세액공제 안내에 씀.
 export function mapPersonalPensionResponse(raw: RawPersonalPensionResponse): PersonalPensionData {
   const accounts = raw.accounts.map((account) => ({
     accountType: account.account_type,

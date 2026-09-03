@@ -13,6 +13,9 @@ interface ConnectionState {
 }
 
 const initialItems: ConnectionItems = {
+  identity: { status: 'idle' },
+  income: { status: 'idle' },
+  employment: { status: 'idle' },
   nationalPension: { status: 'idle' },
   retirementPension: { status: 'idle' },
   personalPension: { status: 'idle' },

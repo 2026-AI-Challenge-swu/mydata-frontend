@@ -4,14 +4,14 @@ import type { RetirementReportResult } from '../api/retirementReportApi';
 import { CompassIcon } from './icons';
 import { GoalEditModal } from './GoalEditModal';
 import { LoadingSpinner } from './LoadingSpinner';
-import { PERSONA, TARGET_MONTHLY_LIVING_COST } from '../hooks/useRetirementReport';
+import { TARGET_MONTHLY_LIVING_COST } from '../hooks/useRetirementReport';
 import { useConnectionStore } from '../../mydata/stores/connectionStore';
 import {
-  CURRENT_AGE,
   PENSION_PAYOUT_YEARS,
   calculateRetirementMonthlyPension,
   formatManwon,
   getConnectedMydata,
+  getCurrentAge,
 } from '../../mydata/utils/assetSummary';
 
 interface CounselingSummaryTabProps {
@@ -62,12 +62,13 @@ export function CounselingSummaryTab({ profile, connected, retirementReport }: C
 
   // "노후 부족 자금 분석"은 AI 리포트가 아니라 마이데이터로 프론트에서 바로 계산하는 값이라, retirementReport를
   // 기다릴 필요 없이 connectedMydata만 있으면 항상 보여줌 — ConsultantSummaryTab의 goal* 계산과 동일한 공식.
-  const yearsToRetirement = retirementAge - CURRENT_AGE;
   const fundAnalysis = connectedMydata
     ? (() => {
+        const yearsToRetirement = retirementAge - getCurrentAge(connectedMydata.identity.birthYear);
         const retirementMonthlyEstimate = calculateRetirementMonthlyPension({
           currentBalance: connectedMydata.retirementPension.balance,
-          annualContribution: PERSONA.annualSalaryPreTax / 12,
+          annualContribution: connectedMydata.income.annualGrossSalary / 12,
+          currentAge: getCurrentAge(connectedMydata.identity.birthYear),
           retirementAge,
         });
         const expectedMonthlyPension = connectedMydata.nationalPension.estimatedMonthlyAmount + retirementMonthlyEstimate;
@@ -92,7 +93,7 @@ export function CounselingSummaryTab({ profile, connected, retirementReport }: C
         </div>
         <h2 className="mt-3 text-[22px] leading-[33px] font-extrabold text-white">AI 연금 설계 리포트</h2>
         <p className="mt-2 text-xs leading-[18px] text-[#99A1AF]">
-          기준일: {today} · 고객명: {PERSONA.name}
+          기준일: {today} · 고객명: {connectedMydata?.identity.name ?? '-'}
         </p>
       </div>
 
