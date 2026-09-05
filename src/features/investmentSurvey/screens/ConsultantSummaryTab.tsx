@@ -616,10 +616,18 @@ function getNiceAxisMax(rawMax: number) {
   return { max: step * 4, step };
 }
 
-// points: 백엔드 futureAssetSimulation.points(currentAge~65세, 1년 단위) 중 "현재 유지" 라인(maintainAmount)만.
-// 예전엔 로컬에서 복리 공식을 6개 지점만 다시 계산했는데, 이제 실제 연도별 값이 이미 다 내려오니
-// 그중 6개 지점만 균등 샘플링해서 그림(축 라벨이 6개인 Figma 시안에 맞춤).
-function FutureAssetChart({ points }: { points: { age: number; maintainAmount: number }[] }) {
+// points: 백엔드 futureAssetSimulation.points(currentAge~65세, 1년 단위)의 3개 시나리오
+// (현재 유지/+20만원/+40만원)를 전부 그림 — 예전엔 maintainAmount 한 줄만 그려서, 위 요약
+// 카드에는 3개 시나리오(1.6억/3.5억/5.4억)가 다 보이는데 그래프는 1개 선만 나오고 Y축도
+// "현재 유지" 최종값 기준으로만 잡혀 다른 두 시나리오보다 훨씬 낮게 잘려 보이는 문제가 있었음.
+// 6개 지점만 균등 샘플링해서 그림(축 라벨이 6개인 Figma 시안에 맞춤).
+const FUTURE_ASSET_SCENARIO_KEYS = ['maintainAmount', 'plus20Amount', 'plus40Amount'] as const;
+
+function FutureAssetChart({
+  points,
+}: {
+  points: { age: number; maintainAmount: number; plus20Amount: number; plus40Amount: number }[];
+}) {
   const plotWidth = 239;
   const plotHeight = 110;
 
@@ -627,26 +635,33 @@ function FutureAssetChart({ points }: { points: { age: number; maintainAmount: n
 
   const startAge = points[0].age;
   const totalYears = points[points.length - 1].age - startAge;
+  const lastPoint = points[points.length - 1];
 
-  const rawMaxValue = points[points.length - 1].maintainAmount;
+  const rawMaxValue = Math.max(lastPoint.maintainAmount, lastPoint.plus20Amount, lastPoint.plus40Amount);
   const { max: axisMaxInEok, step: axisStepInEok } = getNiceAxisMax(rawMaxValue / 100_000_000);
   const axisMaxValue = axisMaxInEok * 100_000_000;
 
-  const sampledPoints = Array.from({ length: 6 }, (_, index) => {
-    const year = totalYears === 0 ? 0 : Math.round((totalYears * index) / 5);
-    const value = points.find((point) => point.age - startAge === year)?.maintainAmount ?? rawMaxValue;
+  const sampledYears = Array.from({ length: 6 }, (_, index) =>
+    totalYears === 0 ? 0 : Math.round((totalYears * index) / 5),
+  );
+  const sampledPoints = sampledYears.map((year) => {
     const x = totalYears === 0 ? 0 : (year / totalYears) * plotWidth;
     return {
       year,
       x,
       // 세로 구분선/눈금은 정수 좌표라야 안티앨리어싱 없이 선명하게 그려짐(곡선용 x와는 별도로 반올림).
       xRounded: Math.round(x),
-      y: plotHeight - (value / axisMaxValue) * plotHeight,
     };
   });
-  const pathData = sampledPoints
-    .map((point, index) => `${index === 0 ? 'M' : 'L'}${point.x.toFixed(1)},${point.y.toFixed(1)}`)
-    .join(' ');
+  const scenarioPathData = FUTURE_ASSET_SCENARIO_KEYS.map((key) =>
+    sampledYears
+      .map((year, index) => {
+        const value = points.find((point) => point.age - startAge === year)?.[key] ?? rawMaxValue;
+        const y = plotHeight - (value / axisMaxValue) * plotHeight;
+        return `${index === 0 ? 'M' : 'L'}${sampledPoints[index].x.toFixed(1)},${y.toFixed(1)}`;
+      })
+      .join(' '),
+  );
   const yAxisTicks = [4, 3, 2, 1, 0].map((multiplier) => multiplier * axisStepInEok);
   // 가로 구분선/눈금도 정수 좌표라야 선명하게 그려짐.
   const yPos = (index: number) => Math.round((index / 4) * plotHeight);
@@ -725,7 +740,10 @@ function FutureAssetChart({ points }: { points: { age: number; maintainAmount: n
               shapeRendering="crispEdges"
             />
           ))}
-          <path d={pathData} fill="none" stroke="#1FAB6A" strokeWidth="2" />
+          {/* 현재 유지(회색)를 맨 아래에, +40만원(초록)을 맨 위에 그려서 겹치는 부분에서도 세 선이 다 보이게 함. */}
+          {scenarioPathData.map((d, index) => (
+            <path key={FUTURE_ASSET_SCENARIO_KEYS[index]} d={d} fill="none" stroke={SCENARIO_COLORS[index]} strokeWidth="2" />
+          ))}
         </svg>
         <div className="mt-1 flex justify-between text-[9px] text-[#9CA3AF]">
           {sampledPoints.map((point) => (
