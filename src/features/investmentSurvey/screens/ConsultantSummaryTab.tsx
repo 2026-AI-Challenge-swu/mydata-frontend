@@ -15,6 +15,7 @@ import {
 } from '../../mydata/utils/assetSummary';
 import type { InvestmentProfile, SurveyQuestion } from '../types/survey';
 import { TARGET_MONTHLY_LIVING_COST, useRetirementReport } from '../hooks/useRetirementReport';
+import { getRecommendedProductGroup } from '../constants/recommendedProductGroups';
 import { GoalEditModal } from '../components/GoalEditModal';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 
@@ -303,7 +304,7 @@ export function ConsultantSummaryTab({ profile, questions, answers, connected, i
       <AiSummarySection totalComment={retirementReport?.aiReport.total_comment} />
       <RoadmapSection roadMap={retirementReport?.aiReport.road_map} />
       <ConsultingPointsSection counsellingPoints={retirementReport?.aiReport.counselling_points} />
-      <RecommendedProductsSection />
+      <RecommendedProductsSection officialName={profile.officialName} />
 
       <Section title={<span className="font-bold">상담 메모</span>}>
         <textarea
@@ -838,13 +839,13 @@ function ConsultingPointsSection({
   );
 }
 
-const RECOMMENDED_PRODUCTS = ['안정형 TDF', '채권형 펀드', '연금저축펀드(안정형)', 'IRP(채권 비중↑)'];
+function RecommendedProductsSection({ officialName }: { officialName: string }) {
+  const recommendedProducts = getRecommendedProductGroup(officialName);
 
-function RecommendedProductsSection() {
   return (
     <Section title={<span className="font-bold">추천 상품 후보</span>}>
       <ul className="flex flex-col gap-2">
-        {RECOMMENDED_PRODUCTS.map((product) => (
+        {recommendedProducts.map((product) => (
           <li key={product} className="flex items-center gap-2 text-xs text-[#1A1A2E]">
             <span className="h-1.5 w-1.5 rounded-full bg-[#2A78D6]" aria-hidden="true" />
             {product}
