@@ -113,7 +113,7 @@ export function SurveyScreen() {
       <SurveyHeader step={stepIndex + 1} total={questions.length} onBack={handleBack} />
 
       <div className="flex flex-1 flex-col px-6 pt-5">
-        <h1 className="w-full text-[18px] leading-[24.75px] font-extrabold text-[#1A1A2E]">{question.text}</h1>
+        <h1 className="w-full text-[16px] leading-[22px] font-extrabold text-[#1A1A2E]">{question.text}</h1>
 
         <div className="mt-7 flex w-full flex-1 flex-col">
           {question.displayType === 'CHOICE' && (
