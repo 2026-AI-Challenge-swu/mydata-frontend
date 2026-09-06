@@ -5,7 +5,7 @@ import type { RetirementReportResult } from '../api/retirementReportApi';
 import { AiAvatarIcon, DatabaseIcon, ReportIcon } from '../components/icons';
 import { FloatingChatButton } from '../components/FloatingChatButton';
 import { CounselingSummaryTab } from '../components/CounselingSummaryTab';
-import { LoadingSpinner } from '../components/LoadingSpinner';
+import { AiReportLoadingScreen } from '../components/AiReportLoadingScreen';
 import { getRecommendedProductGroup } from '../constants/recommendedProductGroups';
 
 interface SurveyResultScreenProps {
@@ -37,6 +37,13 @@ export function SurveyResultScreen({ profile, questions, answers, connected, ret
   const [activeTab, setActiveTab] = useState<ResultTab>('result');
   const recommendedProducts = getRecommendedProductGroup(profile.officialName);
   const quickTodos = (retirementReport?.aiReport.road_map ?? []).slice(0, 3);
+
+  // 마이데이터 연동 시엔 이 화면이 AI 리포트를 처음 만드는 지점 — 응답 전까지 탭/카드를 반쪽만
+  // 채운 채로 보여주는 대신, 리포트가 준비될 때까지 전체 화면을 로딩 화면으로 대체함(콜드스타트로
+  // 응답이 오래 걸려도 "멈췄다"가 아니라 "진행 중"으로 느껴지도록).
+  if (connected && !retirementReport) {
+    return <AiReportLoadingScreen />;
+  }
 
   return (
     <div className="relative flex w-full flex-1 flex-col bg-[#FAFAF7]">
@@ -132,7 +139,7 @@ export function SurveyResultScreen({ profile, questions, answers, connected, ret
             </div>
           )}
 
-          {connected && (
+          {connected && retirementReport && (
             <div className="flex w-full flex-col rounded-2xl border border-black/8 bg-white p-5">
               <h2 className="flex items-center gap-1.5 text-sm leading-[21px] font-bold text-[#1A1A2E]">
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EBF3FF]">
@@ -140,15 +147,9 @@ export function SurveyResultScreen({ profile, questions, answers, connected, ret
                 </span>
                 AI 한줄 조언
               </h2>
-              {retirementReport ? (
-                <p className="mt-2 text-[13px] leading-[21.125px] text-[#6B7280]">
-                  {retirementReport.aiReport.total_comment}
-                </p>
-              ) : (
-                <div className="mt-2 flex justify-center py-1">
-                  <LoadingSpinner className="h-4 w-4" />
-                </div>
-              )}
+              <p className="mt-2 text-[13px] leading-[21.125px] text-[#6B7280]">
+                {retirementReport.aiReport.total_comment}
+              </p>
             </div>
           )}
 
@@ -171,9 +172,7 @@ export function SurveyResultScreen({ profile, questions, answers, connected, ret
                     </span>
                     <div>
                       <p className="text-[11px] leading-[16.5px] font-bold text-[#2A78D6]">{label}</p>
-                      <p className="text-[13px] leading-[19.5px] text-[#1A1A2E]">
-                        {quickTodos[index]?.todo ?? <LoadingSpinner />}
-                      </p>
+                      <p className="text-[13px] leading-[19.5px] text-[#1A1A2E]">{quickTodos[index]?.todo}</p>
                     </div>
                   </li>
                 ))}
