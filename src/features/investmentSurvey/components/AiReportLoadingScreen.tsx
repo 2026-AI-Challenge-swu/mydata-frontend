@@ -9,13 +9,14 @@ import { AiAvatarIcon, AlertCircleIcon } from './icons';
 // 맞춰 넉넉하게 둠 — 너무 자주 바뀌면 오히려 정신없어 보임.
 // 45초 이후 문구는 useRetirementReport의 콜드스타트 자동 재시도(2026-09-06 추가) 때문에 로딩이
 // 더 길어질 수 있어서 추가함 — "거의 다 됐어요"가 45초 넘게 안 바뀌면 멈춘 것처럼 보이므로,
-// 서버가 깨어나는 중일 수 있다는 걸 알려줘서 신뢰를 유지함.
+// 서버가 깨어나는 중일 수 있다는 걸 알려줘서 신뢰를 유지함. 앞의 진행 상태 문구들과 달리 이건
+// 사용자가 원인을 몰라도 되는 보조 설명이라, small로 표시해서 위계를 낮춤(2026-09-06).
 const LOADING_MESSAGES = [
   { afterMs: 0, text: '당신의 자산 데이터를 확인하고 있어요' },
   { afterMs: 6000, text: 'AI가 당신에게 딱 맞는 연금 설계를 하는 중이에요' },
   { afterMs: 15000, text: '예상 수령액과 부족 자금을 계산하고 있어요' },
   { afterMs: 28000, text: '거의 다 됐어요, 조금만 기다려주세요' },
-  { afterMs: 45000, text: '서버를 깨우는 중일 수 있어요, 조금만 더 기다려주세요' },
+  { afterMs: 45000, text: '서버를 깨우는 중일 수 있어요, 조금만 더 기다려주세요', small: true },
 ];
 
 interface AiReportLoadingScreenProps {
@@ -57,7 +58,7 @@ export function AiReportLoadingScreen({ error = false, onRetry }: AiReportLoadin
   }
 
   // 뒤에서부터 찾아서 "지금 경과 시간을 이미 넘긴 것 중 가장 최근 문구"를 고름.
-  const message = [...LOADING_MESSAGES].reverse().find((step) => elapsedMs >= step.afterMs)!.text;
+  const activeStep = [...LOADING_MESSAGES].reverse().find((step) => elapsedMs >= step.afterMs)!;
 
   return (
     <div className="flex w-full flex-1 flex-col items-center justify-center bg-white px-6 text-center">
@@ -70,7 +71,13 @@ export function AiReportLoadingScreen({ error = false, onRetry }: AiReportLoadin
           <AiAvatarIcon color="#2A78D6" />
         </span>
       </div>
-      <p className="mt-8 max-w-[320px] text-[15px] leading-[22.5px] font-bold text-[#1A1A2E]">{message}</p>
+      <p
+        className={`mt-8 max-w-[320px] font-bold text-[#1A1A2E] ${
+          activeStep.small ? 'text-[12px] leading-[18px]' : 'text-[15px] leading-[22.5px]'
+        }`}
+      >
+        {activeStep.text}
+      </p>
       <p className="mt-2 text-[13px] leading-[19.5px] text-[#6B7280]">
         마이데이터를 바탕으로 리포트를 만들고 있어요
       </p>
