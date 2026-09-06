@@ -66,13 +66,6 @@ export function MydataConnectionScreen() {
           성공 시나리오
         </button>
         <button
-          className="rounded-md bg-amber-500 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-          onClick={() => runScenario('partialFailure')}
-          disabled={isLoading}
-        >
-          부분 실패 시나리오
-        </button>
-        <button
           className="rounded-md bg-red-500 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
           onClick={() => runScenario('failure')}
           disabled={isLoading}
