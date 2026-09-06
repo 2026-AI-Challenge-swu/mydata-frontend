@@ -27,6 +27,14 @@ function estimateAnnualContribution(accumAmt: number, issueDate: string): number
   return Math.round(accumAmt / elapsedYears);
 }
 
+// ai-agent-core(Render 무료 플랜)가 유휴 15분 후 잠들었다가 첫 요청에 깨어나는 구조라, 리포트
+// 생성 화면에 처음 들어왔을 때(이 세션에서 ai-agent-core를 처음 건드리는 순간) 콜드스타트에
+// 걸리는 경우가 잦음(2026-09-06 실서비스에서 확인 — 첫 시도는 거의 항상 실패하고, 그 실패가
+// 이미 컨테이너를 깨워놔서 재시도하면 성공하는 패턴이 재현됨). 이 실패를 사용자에게 바로
+// "문제가 생겼어요"로 보여주는 대신, 로딩 화면을 유지한 채 몇 번 더 조용히 재시도해서 콜드스타트
+// 부팅 시간을 대신 흡수함 — 그래도 다 실패하면 그때 진짜 실패로 보여주고 수동 재시도를 받음.
+const AUTO_RETRY_DELAYS_MS = [4000, 10000, 20000];
+
 interface UseRetirementReportParams {
   answers: Record<string, number>;
   connectedMydata: ConnectedMydata | null;
@@ -89,12 +97,15 @@ export function useRetirementReport({
     isFetchingRef.current = true;
     setIsError(false);
 
+    let cancelled = false;
+    let pendingRetryTimeout: ReturnType<typeof setTimeout> | null = null;
+
     const surveyAnswers = Object.entries(answers).map(([questionId, selectedOrder]) => ({
       questionId,
       selectedOrder,
     }));
 
-    generateRetirementReport({
+    const payload = {
       surveyAnswers,
       currentAge: getCurrentAge(connectedMydata.identity.birthYear),
       gender: connectedMydata.identity.gender,
@@ -135,18 +146,44 @@ export function useRetirementReport({
           expenseAmt: connectedMydata.bankTransaction.monthlyExpense,
         },
       },
-    })
-      .then((result) => {
-        if (requestIdRef.current === requestId) setReport(result);
-      })
-      .catch(() => {
-        // report는 지우지 않음 — 이전에 성공한 리포트가 있었다면 그대로 화면에 남겨두고,
-        // isError만 켜서 "재시도 필요" 상태를 알려줌.
-        if (requestIdRef.current === requestId) setIsError(true);
-      })
-      .finally(() => {
-        if (requestIdRef.current === requestId) isFetchingRef.current = false;
-      });
+    };
+
+    // attemptIndex번째 시도(0-based)가 실패하면, 아직 남은 자동 재시도가 있는지 확인해서
+    // 있으면 로딩 화면을 유지한 채 지연 후 다시 시도하고, 없으면(콜드스타트로 보기엔 너무
+    // 오래 실패한 것) 그때 진짜 실패로 처리해서 수동 재시도 화면을 보여줌.
+    const attempt = (attemptIndex: number) => {
+      generateRetirementReport(payload)
+        .then((result) => {
+          if (cancelled || requestIdRef.current !== requestId) return;
+          setReport(result);
+          isFetchingRef.current = false;
+        })
+        .catch(() => {
+          if (cancelled || requestIdRef.current !== requestId) return;
+
+          if (attemptIndex < AUTO_RETRY_DELAYS_MS.length) {
+            pendingRetryTimeout = setTimeout(() => {
+              if (!cancelled && requestIdRef.current === requestId) attempt(attemptIndex + 1);
+            }, AUTO_RETRY_DELAYS_MS[attemptIndex]);
+            return;
+          }
+
+          // report는 지우지 않음 — 이전에 성공한 리포트가 있었다면 그대로 화면에 남겨두고,
+          // isError만 켜서 "재시도 필요" 상태를 알려줌.
+          setIsError(true);
+          isFetchingRef.current = false;
+        });
+    };
+
+    attempt(0);
+
+    return () => {
+      cancelled = true;
+      if (pendingRetryTimeout) clearTimeout(pendingRetryTimeout);
+      // 이 체인이 아직 안 끝난 채로 effect가 재실행/언마운트되는 경우(입력값이 바뀌는 등) 다음
+      // effect 실행이 "이미 진행 중"으로 오인해 멈추지 않도록 여기서 풀어줌.
+      isFetchingRef.current = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     connectedMydata?.retirementPension.balance,
@@ -157,7 +194,6 @@ export function useRetirementReport({
     answersKey,
     retryToken,
   ]);
-
 
   return {
     report,
