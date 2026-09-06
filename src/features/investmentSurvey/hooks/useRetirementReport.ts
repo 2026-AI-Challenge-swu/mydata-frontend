@@ -43,18 +43,28 @@ export function useRetirementReport({
   initialReport,
 }: UseRetirementReportParams) {
   const [report, setReport] = useState<RetirementReportResult | null>(initialReport ?? null);
+  // 리포트 생성이 실패했을 때 화면에 알려주기 위한 상태 — report는 실패해도 null로 지우지 않고
+  // 그대로 둠(아래 catch 참고), 그래야 "이미 성공한 리포트가 있는데 중복 요청이 실패해서 화면이
+  // 다시 무한로딩으로 돌아가는" 문제가 안 생김.
+  const [isError, setIsError] = useState(false);
+  // retry()가 이 값을 바꿔서 아래 effect를 강제로 다시 실행시킴(재시도 버튼용).
+  const [retryToken, setRetryToken] = useState(0);
   // useRef로 "초기값을 이미 넘겨받았는지"를 기억해둠 — 아래 useEffect가 처음 한 번 실행될 때만
   // 이 값을 보고 fetch를 건너뛰고, 그 다음부터(목표 생활비를 상담원이 수정하는 등)는 정상적으로
   // 다시 fetch하게 하기 위한 "1회용 스킵 플래그"임.
   const skipNextFetch = useRef(Boolean(initialReport));
 
-  // 이 effect가 몇 번째로 실행됐는지 세는 카운터 — React StrictMode가 개발 모드에서 effect를
-  // 일부러 두 번 실행하거나, 리렌더로 짧은 시간에 이 effect가 다시 돌면, 응답이 도착하는 순서가
-  // 요청을 보낸 순서와 다를 수 있음(AI 쪽 응답 시간이 매번 달라서 특히 심함). 가드 없이 그냥
-  // setReport를 부르면 "먼저 보낸 요청의 실패 응답"이 "나중에 보낸 요청의 성공 응답"을 덮어써서
-  // 화면에 결과가 떴다가 사라지는 현상이 생김 — 그래서 응답이 도착했을 때 그게 여전히 "가장 최근에
-  // 보낸 요청"인지 확인하고, 아니면(오래된 요청의 응답이면) 무시함.
+  // 이 effect가 몇 번째로 실행됐는지 세는 카운터 — 리렌더로 짧은 시간에 이 effect가 다시 돌면,
+  // 응답이 도착하는 순서가 요청을 보낸 순서와 다를 수 있음(AI 쪽 응답 시간이 매번 달라서 특히
+  // 심함). 가드 없이 그냥 setReport를 부르면 "먼저 보낸 요청의 실패 응답"이 "나중에 보낸 요청의
+  // 성공 응답"을 덮어써서 화면에 결과가 떴다가 사라지는 현상이 생김 — 그래서 응답이 도착했을 때
+  // 그게 여전히 "가장 최근에 보낸 요청"인지 확인하고, 아니면(오래된 요청의 응답이면) 무시함.
   const requestIdRef = useRef(0);
+  // 실제 운영 환경에서 이 effect가 (정확한 원인 미확인이지만) 같은 입력으로 짧은 간격을 두고
+  // 두 번 실행되어 AI 서비스에 리포트 생성 요청이 중복으로 나가는 게 확인됨 — 안 그래도 느린
+  // AI 호출을 두 배로 만들고, 실패 확률(RAG 서버 동시 부하로 인한 타임아웃)까지 올라감. 이미
+  // 요청이 진행 중이면 새 요청을 또 보내지 않도록 막음.
+  const isFetchingRef = useRef(false);
 
   useEffect(() => {
     if (!connectedMydata) return;
@@ -64,7 +74,11 @@ export function useRetirementReport({
       return;
     }
 
+    if (isFetchingRef.current) return;
+
     const requestId = ++requestIdRef.current;
+    isFetchingRef.current = true;
+    setIsError(false);
 
     const surveyAnswers = Object.entries(answers).map(([questionId, selectedOrder]) => ({
       questionId,
@@ -117,7 +131,12 @@ export function useRetirementReport({
         if (requestIdRef.current === requestId) setReport(result);
       })
       .catch(() => {
-        if (requestIdRef.current === requestId) setReport(null);
+        // report는 지우지 않음 — 이전에 성공한 리포트가 있었다면 그대로 화면에 남겨두고,
+        // isError만 켜서 "재시도 필요" 상태를 알려줌.
+        if (requestIdRef.current === requestId) setIsError(true);
+      })
+      .finally(() => {
+        if (requestIdRef.current === requestId) isFetchingRef.current = false;
       });
   }, [
     connectedMydata?.retirementPension.balance,
@@ -126,7 +145,12 @@ export function useRetirementReport({
     connectedMydata?.bankTransaction.monthlyIncome,
     targetLivingCost,
     answers,
+    retryToken,
   ]);
 
-  return report;
+  return {
+    report,
+    isError,
+    retry: () => setRetryToken((token) => token + 1),
+  };
 }

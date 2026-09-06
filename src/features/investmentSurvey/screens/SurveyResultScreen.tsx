@@ -17,6 +17,10 @@ interface SurveyResultScreenProps {
   // 내려줌. "AI 한줄 조언"/"지금 당장 할 일"은 이 값에서 그대로 뽑아 써서, 뒤에 나오는 전문가 리포트
   // 화면과 내용이 절대 어긋나지 않게 함(같은 리포트를 두 화면이 나눠서 보여주는 구조).
   retirementReport: RetirementReportResult | null;
+  // 리포트 생성이 실패했을 때(콜드스타트/AI 서비스 오류 등) true — retirementReport가 아직 없는
+  // 상태에서 이게 true면 무한 로딩 대신 재시도 화면을 보여줌.
+  retirementReportError: boolean;
+  onRetryRetirementReport: () => void;
 }
 
 // road_map은 백엔드가 5단계(이번 달/다음 달/3개월 후/1년 후/매년)로 내려주는데, "내 결과" 화면은
@@ -32,7 +36,15 @@ const QUICK_TODO_ICONS = [
 
 type ResultTab = 'result' | 'summary';
 
-export function SurveyResultScreen({ profile, questions, answers, connected, retirementReport }: SurveyResultScreenProps) {
+export function SurveyResultScreen({
+  profile,
+  questions,
+  answers,
+  connected,
+  retirementReport,
+  retirementReportError,
+  onRetryRetirementReport,
+}: SurveyResultScreenProps) {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<ResultTab>('result');
   const recommendedProducts = getRecommendedProductGroup(profile.officialName);
@@ -40,9 +52,11 @@ export function SurveyResultScreen({ profile, questions, answers, connected, ret
 
   // 마이데이터 연동 시엔 이 화면이 AI 리포트를 처음 만드는 지점 — 응답 전까지 탭/카드를 반쪽만
   // 채운 채로 보여주는 대신, 리포트가 준비될 때까지 전체 화면을 로딩 화면으로 대체함(콜드스타트로
-  // 응답이 오래 걸려도 "멈췄다"가 아니라 "진행 중"으로 느껴지도록).
+  // 응답이 오래 걸려도 "멈췄다"가 아니라 "진행 중"으로 느껴지도록). 실패했을 땐(retirementReportError)
+  // 똑같이 계속 도는 스피너 대신 재시도 화면을 보여줌 — 안 그러면 실패해도 사용자는 구분 못 하고
+  // 영원히 로딩 화면만 보게 됨.
   if (connected && !retirementReport) {
-    return <AiReportLoadingScreen />;
+    return <AiReportLoadingScreen error={retirementReportError} onRetry={onRetryRetirementReport} />;
   }
 
   return (
