@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ConnectedMydata } from '../../mydata/utils/assetSummary';
 import { generateRetirementReport, type RetirementReportResult } from '../api/retirementReportApi';
 import { getCurrentAge } from '../../mydata/utils/assetSummary';
@@ -65,6 +65,15 @@ export function useRetirementReport({
   // AI 호출을 두 배로 만들고, 실패 확률(RAG 서버 동시 부하로 인한 타임아웃)까지 올라감. 이미
   // 요청이 진행 중이면 새 요청을 또 보내지 않도록 막음.
   const isFetchingRef = useRef(false);
+
+  // 부모(InvestmentProfilePlaceholderScreen)가 리포트를 받을 때마다 navigate()로 history
+  // state를 다시 쓰는데, 브라우저가 그 state를 구조적 복제해서 저장하다 보니 다음 렌더에서
+  // 꺼내는 answers는 내용은 같아도 객체 참조가 매번 달라짐. 아래 effect의 의존성 배열에 answers
+  // 객체를 그대로 넣으면 그 참조 변경만으로 effect가 다시 실행돼서 "리포트 성공 → navigate →
+  // answers 참조 변경 → 재요청 → 또 리포트 성공 → navigate → ..." 로 끝없이 재요청을 보내는
+  // 루프가 생김(실서비스에서 실제로 재현 확인, 2026-09-06). 참조가 아니라 내용으로 비교하도록
+  // 문자열로 변환해서 의존성 배열에 씀 — 내용이 같으면 문자열도 같아서 effect가 다시 안 돎.
+  const answersKey = useMemo(() => JSON.stringify(answers), [answers]);
 
   useEffect(() => {
     if (!connectedMydata) return;
@@ -138,15 +147,17 @@ export function useRetirementReport({
       .finally(() => {
         if (requestIdRef.current === requestId) isFetchingRef.current = false;
       });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     connectedMydata?.retirementPension.balance,
     connectedMydata?.personalPension.totalContribution,
     connectedMydata?.savingsInvestment.totalBalance,
     connectedMydata?.bankTransaction.monthlyIncome,
     targetLivingCost,
-    answers,
+    answersKey,
     retryToken,
   ]);
+
 
   return {
     report,
