@@ -68,7 +68,7 @@ export function ConsultantSummaryTab({ profile, questions, answers, connected, i
   // fetch 로직 자체는 useRetirementReport 훅으로 옮겨서 SurveyResultScreen과 공유함 — "내 결과" 화면에서
   // 이미 만든 리포트(initialReport)가 있으면 여기서 똑같은 조건으로 다시 호출하지 않고 그대로 재사용해서,
   // 두 화면에 보이는 AI 조언/할 일 내용이 어긋나지 않게 함.
-  const retirementReport = useRetirementReport({
+  const { report: retirementReport } = useRetirementReport({
     answers,
     connectedMydata,
     targetLivingCost: goalLivingCost,
